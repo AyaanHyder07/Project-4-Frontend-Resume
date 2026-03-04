@@ -1,70 +1,169 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './auth/AuthContext';
-import ProtectedRoute from './routes/ProtectedRoute';
-import AdminRoute from './routes/AdminRoute';
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
+/* ── PUBLIC PAGES ── */
+import HomePage            from "./pages/public/HomePage";
+import PublicPortfolioPage from "./pages/public/PublicPortfolioPage";
 
-import UserDashboardLayout from './layouts/UserDashboardLayout';
-import AdminDashboardLayout from './layouts/AdminDashboardLayout';
+/* ── AUTH PAGES ── */
+import LoginPage    from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
 
-import MyResumesPage from './pages/user/MyResumesPage';
-import ResumeEditorPage from './pages/user/ResumeEditorPage';
-import VersionHistoryPage from './pages/user/VersionHistoryPage';
-import PublicLinkPage from './pages/user/PublicLinkPage';
-import ProfilePage from './pages/user/ProfilePage';
+// /* ── USER PAGES ── */
+// import Dashboard        from "./pages/User/Dashboard";
+// import ResumesPage      from "./pages/User/ResumesPage";
+// import ResumeEditorPage from "./pages/User/ResumeEditorPage";
+// import TemplatesPage    from "./pages/User/TemplatesPage";
+// import AnalyticsPage    from "./pages/User/AnalyticsPage";
 
-import OverviewPage from './pages/admin/OverviewPage';
-import ModerationPage from './pages/admin/ModerationPage';
-import UserManagementPage from './pages/admin/UserManagementPage';
-import PublishedResumesPage from './pages/admin/PublishedResumesPage';
-import AnalyticsPage from './pages/admin/AnalyticsPage';
-import AuditLogPage from './pages/admin/AuditLogPage';
 
-import PublicResumePage from './pages/public/PublicResumePage';
+/* ── ADMIN PAGES ── */
+import AdminDashboard   from "./pages/admin/AdminDashboard";
+import AdminResumesPage from "./pages/admin/AdminResumesPage";
+import AdminPendingPage from "./pages/admin/AdminPendingPage";
+
+import AdminLayoutsPage from "./pages/admin/AdminLayoutsPage";
+import AdminThemeBuilderPage from "./pages/admin/AdminThemeBuilderPage";
+import Dashboard from "./pages/Userss/Dashboard";
+import ResumesPage from "./pages/Userss/ResumesPage";
+import ResumeEditorPage from "./pages/Userss/ResumeEditorPage";
+import TemplatesPage from "./pages/Userss/TemplatesPage";
+import AnalyticsPage from "./pages/Userss/AnalyticsPage";
+
 
 function App() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="loading-spinner"></div>
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/resume/:id" element={<PublicResumePage />} />
 
-      <Route path="/dashboard" element={<ProtectedRoute><UserDashboardLayout /></ProtectedRoute>}>
-        <Route index element={<Navigate to="resumes" replace />} />
-        <Route path="resumes" element={<MyResumesPage />} />
-        <Route path="resumes/:id" element={<ResumeEditorPage />} />
-        <Route path="resumes/:id/versions" element={<VersionHistoryPage />} />
-        <Route path="resumes/:id/link" element={<PublicLinkPage />} />
-        <Route path="profile" element={<ProfilePage />} />
-      </Route>
+          {/* ═══════════════════════════════
+              PUBLIC ROUTES — no auth needed
+          ═══════════════════════════════ */}
+          <Route path="/"          element={<HomePage />} />
+          <Route path="/login"     element={<LoginPage />} />
+          <Route path="/register"  element={<RegisterPage />} />
 
-      <Route path="/admin" element={<AdminRoute><AdminDashboardLayout /></AdminRoute>}>
-        <Route index element={<Navigate to="overview" replace />} />
-        <Route path="overview" element={<OverviewPage />} />
-        <Route path="moderation" element={<ModerationPage />} />
-        <Route path="users" element={<UserManagementPage />} />
-        <Route path="published" element={<PublishedResumesPage />} />
-        <Route path="analytics" element={<AnalyticsPage />} />
-        <Route path="audit" element={<AuditLogPage />} />
-      </Route>
+          {/* Public portfolio by slug */}
+          <Route path="/p/:slug"   element={<PublicPortfolioPage />} />
 
+
+          {/* ═══════════════════════════════
+              USER PROTECTED ROUTES
+              role must be "ROLE_USER"
+          ═══════════════════════════════ */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute role="ROLE_USER">
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resumes"
+            element={
+              <ProtectedRoute role="ROLE_USER">
+                <ResumesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resumes/:resumeId"
+            element={
+              <ProtectedRoute role="ROLE_USER">
+                <ResumeEditorPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/templates"
+            element={
+              <ProtectedRoute role="ROLE_USER">
+                <TemplatesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute role="ROLE_USER">
+                <AnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* <Route
+            path="/analytics/:resumeId"
+            element={
+              <ProtectedRoute role="ROLE_USER">
+                <AnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute role="ROLE_USER">
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          /> */}
+
+
+          {/* ═══════════════════════════════
+              ADMIN PROTECTED ROUTES
+              role must be "ROLE_ADMIN"
+          ═══════════════════════════════ */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute role="ROLE_ADMIN">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/resumes"
+            element={
+              <ProtectedRoute role="ROLE_ADMIN">
+                <AdminResumesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/pending"
+            element={
+              <ProtectedRoute role="ROLE_ADMIN">
+                <AdminPendingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/themes"
+            element={
+              <ProtectedRoute role="ROLE_ADMIN">
+                <AdminThemeBuilderPage />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/admin/layouts"
+            element={
+              <ProtectedRoute role="ROLE_ADMIN">
+                <AdminLayoutsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Shortcut redirect */}
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+
+
+          {/* ═══════════════════════════════
+              FALLBACK 404
+          ═══════════════════════════════ */}
       <Route path="*" element={<Navigate to="/" replace />} />
+
     </Routes>
   );
 }

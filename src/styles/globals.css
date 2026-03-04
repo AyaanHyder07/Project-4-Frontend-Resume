@@ -1,223 +1,233 @@
+/* ============================================================
+   GLOBALS.CSS — Old Money Design System
+   Cream / Charcoal / Forest Olive palette
+   Matches HomePage aesthetic throughout
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+/* ── TOKENS ── */
 :root {
-  --bg-primary: #04040a;
-  --bg-secondary: #080810;
-  --bg-card: #0d0d1a;
-  --bg-hover: #12122a;
-  --border-color: #1e1e3a;
-  --border-subtle: #151528;
-  --text-primary: #e8e8f0;
-  --text-secondary: #9494b0;
-  --text-muted: #5a5a7a;
-  --accent: #b8ff57;
-  --accent-hover: #a0f040;
-  --accent-dim: #b8ff5715;
-  --state-draft: #4a9eff;
-  --state-submitted: #ff9f43;
-  --state-approved: #26de81;
-  --state-published: #b8ff57;
-  --state-disabled: #5a5a7a;
+  /* Core Palette */
+  --cream:       #F5F0E8;
+  --cream-dark:  #EDE8DF;
+  --cream-card:  #FAF7F2;
+  --charcoal:    #1C1C1C;
+  --charcoal-lt: #2E2E2E;
+  --olive:       #4A5240;
+  --olive-lt:    #6B7560;
+  --muted:       #8A8578;
+  --muted-lt:    #B5AFA5;
+  --border:      #D6D0C4;
+  --border-lt:   #E8E3DA;
+
+  /* Semantic */
+  --success:     #3A6B4A;
+  --warning:     #8B6914;
+  --danger:      #8B2A2A;
+  --info:        #2A5A8B;
+
+  /* Aliases used by components.css / auth forms */
+  --bg-primary:  var(--cream);
+  --bg-secondary:var(--cream-dark);
+  --bg-card:     var(--cream-card);
+  --bg-hover:    var(--cream-dark);
+  --bg-input:    #FFFFFF;
+  --text-primary:    var(--charcoal);
+  --text-secondary:  var(--muted);
+  --text-muted:      var(--muted-lt);
+  --accent:          var(--olive);
+  --accent-hover:    var(--olive-lt);
+  --accent-dim:      rgba(74, 82, 64, 0.08);
+  --border-color:    var(--border);
+
+  /* Typography */
+  --font-display: 'Cormorant Garamond', 'Georgia', serif;
+  --font-body:    'DM Sans', 'Helvetica Neue', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+
+  /* Spacing */
+  --space-2:  2px;
+  --space-4:  4px;
+  --space-8:  8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-60: 60px;
+
+  /* Radii — intentionally sharp for old money look */
+  --radius-sm:   2px;
+  --radius-md:   4px;
+  --radius-lg:   6px;
+  --radius-full: 50%;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 4px rgba(28, 28, 28, 0.06);
+  --shadow-md:  0 4px 16px rgba(28, 28, 28, 0.08);
+  --shadow-lg:  0 12px 40px rgba(28, 28, 28, 0.12);
+
+  /* Transitions */
+  --transition-fast:   0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow:   0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
+/* ── RESET ── */
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  min-height: 100vh;
-  line-height: 1.5;
-  position: relative;
+/* ── BASE ── */
+html {
+  scroll-behavior: smooth;
 }
 
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 9999;
+body {
+  font-family: var(--font-body);
+  background: var(--cream);
+  color: var(--charcoal);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--charcoal);
+}
+
+a {
+  color: var(--olive);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--charcoal);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+input, textarea, select {
+  font-family: var(--font-body);
 }
 
 code, .mono {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-mono);
 }
 
+/* ── FOCUS ── */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--olive);
+  outline-offset: 3px;
+}
+
+/* ── LOADING ── */
 .loading-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--cream);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  gap: 1rem;
+  z-index: 9999;
+  gap: 16px;
 }
 
 .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--border-color);
-  border-top-color: var(--accent);
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--border);
+  border-top-color: var(--olive);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.9s linear infinite;
 }
 
+/* ── PAGE TRANSITION ── */
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--cream-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--muted-lt);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* ── CONTAINER ── */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-40);
+}
+
+/* ── KEYFRAMES ── */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.fade-in {
-  animation: fadeIn 0.4s ease-out;
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
-.fade-in-up {
-  animation: fadeInUp 0.5s ease-out;
-}
-
-a {
-  color: var(--accent);
-  text-decoration: none;
-}
-
-a:hover {
-  color: var(--accent-hover);
-}
-
-button:focus, input:focus, select:focus, textarea:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* Home Page */
-.home-page {
-  min-height: 100vh;
-  padding: 60px 24px;
-}
-
-.home-header {
-  text-align: center;
-  margin-bottom: 60px;
-}
-
-.home-header h1 {
-  font-size: 3rem;
-  margin-bottom: 12px;
-}
-
-.home-tagline {
-  color: var(--text-secondary);
-  font-size: 1.25rem;
-  margin-bottom: 32px;
-}
-
-.home-nav {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.home-main {
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.home-card h2 {
-  margin-bottom: 16px;
-  font-size: 1.5rem;
-}
-
-.home-card ul {
-  list-style: none;
-}
-
-.home-card li {
-  padding: 8px 0;
-  padding-left: 24px;
-  position: relative;
-}
-
-.home-card li::before {
-  content: '✓';
-  position: absolute;
-  left: 0;
-  color: var(--accent);
-  font-weight: bold;
-}
-
-.text-muted { color: var(--text-muted); }
-
-/* Stats */
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; }
-.stat-card { text-align: center; }
-.stat-value { display: block; font-size: 2rem; font-weight: 700; color: var(--accent); }
-.stat-label { font-size: 0.875rem; color: var(--text-muted); }
-
-/* List */
-.list { display: flex; flex-direction: column; gap: 12px; }
-.list-item { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--border-subtle); }
-.list-item:last-child { border-bottom: none; }
-.list-actions { margin-left: auto; display: flex; gap: 8px; }
-
-/* Modal */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 24px; }
-.modal { max-width: 480px; width: 100%; }
-
-/* Top list */
-.top-list { list-style: none; }
-.top-list li { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-subtle); }
-.top-list li:last-child { border-bottom: none; }
-
-/* Audit */
-.audit-list { display: flex; flex-direction: column; }
-.audit-item { border-bottom: 1px solid var(--border-subtle); }
-.audit-row { display: flex; gap: 16px; align-items: center; padding: 12px; cursor: pointer; flex-wrap: wrap; }
-.audit-action { font-weight: 600; color: var(--accent); }
-.audit-entity { flex: 1; }
-.audit-actor { color: var(--text-muted); }
-.audit-meta { background: var(--bg-secondary); padding: 12px; border-radius: 8px; font-size: 0.8rem; overflow-x: auto; margin: 0 12px 12px; }
-
-/* Public resume */
-.public-resume { max-width: 800px; margin: 0 auto; padding: 40px 24px; }
-.public-actions { display: flex; gap: 12px; margin-bottom: 32px; }
-.resume-document { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 40px; }
-.resume-document header { margin-bottom: 24px; }
-.resume-document h1 { font-size: 2rem; margin-bottom: 4px; }
-.resume-document .job-title { color: var(--text-secondary); margin-bottom: 8px; }
-.resume-document .contact { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
-.resume-document .links { display: flex; gap: 16px; }
-.resume-document section { margin-top: 24px; }
-.resume-document section h2 { font-size: 1.125rem; margin-bottom: 12px; color: var(--accent); }
-.resume-document .block { margin-bottom: 16px; }
-.resume-document .muted { color: var(--text-muted); }
-.public-404 { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
-
+/* ── PRINT ── */
 @media print {
   .no-print { display: none !important; }
-  body::before { display: none; }
+  body { background: white; color: black; }
+}
+
+/* ── REDUCED MOTION ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

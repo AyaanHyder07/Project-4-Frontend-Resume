@@ -1,38 +1,36 @@
+
 import axiosInstance from './axiosInstance';
 
 export const authAPI = {
-  register: (data) => axiosInstance.post('/api/auth/register', data),
+  register: (data) => axiosInstance.post('/api/auth/signup', data),
   login: (data) => axiosInstance.post('/api/auth/login', data),
   logout: () => axiosInstance.post('/api/auth/logout'),
+  forgotPassword: (data) => axiosInstance.post('/api/auth/forgot-password', data),
+  resetPassword: (data) => axiosInstance.post('/api/auth/reset-password', data),
   updateProfile: (data) => axiosInstance.put('/api/auth/profile', data),
   changePassword: (data) => axiosInstance.put('/api/auth/change-password', data),
 };
 
 export const resumeAPI = {
-  create: (data) => axiosInstance.post('/api/resumes', data),
-  update: (id, data) => axiosInstance.put(`/api/resumes/${id}`, data),
-  submit: (id) => axiosInstance.put(`/api/resumes/${id}/submit`),
-  getMy: () => axiosInstance.get('/api/resumes/my'),
-  getById: (id) => axiosInstance.get(`/api/resumes/${id}`),
-  getVersions: (id) => axiosInstance.get(`/api/resumes/${id}/versions`),
+  create: (data) => axiosInstance.post('/api/resume', data),
+  getAll: () => axiosInstance.get('/api/resume'),
+  getById: (id) => axiosInstance.get(`/api/resume/${id}`),
+  getPublished: () => axiosInstance.get('/api/resume/published'),
+  update: (id, data) => axiosInstance.put(`/api/resume/${id}`, data),
+  publish: (id) => axiosInstance.put(`/api/resume/${id}/publish`),
+  unpublish: (id) => axiosInstance.put(`/api/resume/${id}/unpublish`),
+  changeVisibility: (id, visibility) => 
+    axiosInstance.patch(`/api/resume/${id}/visibility?visibility=${visibility}`),
+  delete: (id) => axiosInstance.delete(`/api/resume/${id}`),
 };
 
 export const adminAPI = {
-  getDashboard: () => axiosInstance.get('/api/admin/dashboard'),
-  getResumes: (params) => axiosInstance.get('/api/admin/resumes', { params }),
+  getAllResumes: () => axiosInstance.get('/api/resume/admin/all'),
+  getStats: () => axiosInstance.get('/api/resume/admin/stats'),
   approveResume: (id) => axiosInstance.put(`/api/admin/resumes/${id}/approve`),
-  publishResume: (id) => axiosInstance.put(`/api/admin/resumes/${id}/publish`),
-  disableResume: (id) => axiosInstance.put(`/api/admin/resumes/${id}/disable`),
   rejectResume: (id, data) => axiosInstance.put(`/api/admin/resumes/${id}/reject`, data || {}),
-  getUsers: (params) => axiosInstance.get('/api/admin/users', { params }),
-  blockUser: (id) => axiosInstance.put(`/api/admin/users/${id}/block`),
-  unblockUser: (id) => axiosInstance.put(`/api/admin/users/${id}/unblock`),
-  getUserResumes: (id) => axiosInstance.get(`/api/admin/users/${id}/resumes`),
-  getAnalytics: (params) => axiosInstance.get('/api/admin/analytics', { params }),
-  getAudit: (params) => axiosInstance.get('/api/admin/audit', { params }),
 };
 
-export const publicAPI = {
-  getResume: (id) => axiosInstance.get(`/api/public/resumes/${id}`),
-  logDownload: (id) => axiosInstance.post(`/api/public/resumes/${id}/analytics`),
+export const contactAPI = {
+  submit: (data) => axiosInstance.post('/api/contact', data),
 };

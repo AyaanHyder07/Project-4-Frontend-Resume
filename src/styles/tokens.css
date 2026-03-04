@@ -1,0 +1,322 @@
+/**
+ * DESIGN TOKENS - Global CSS Custom Properties
+ * Professional Design System for Resume Dashboard SaaS
+ * 
+ * Three separate color themes for different views:
+ * - Admin Dashboard (dark, professional)
+ * - Resume Editor (dark with accent colors)
+ * - Public Profile (deep blue with gradient background)
+ */
+
+/* ============================================================================
+   ADMIN DASHBOARD THEME
+   ============================================================================ */
+:root.admin-theme {
+  /* Backgrounds */
+  --bg-dark: #0d1117;
+  --bg-panel: #161b22;
+  --bg-elevated: #1c2128;
+
+  /* Borders */
+  --border: #30363d;
+
+  /* Typography */
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+
+  /* Accent Colors */
+  --accent-blue: #58a6ff;
+  --accent-purple: #bc8cff;
+  --accent-green: #3fb950;
+  --accent-orange: #f0883e;
+  --accent-red: #f85149;
+
+  /* Semantic Colors */
+  --success: #238636;
+  --warning: #9e6a03;
+  --danger: #da3633;
+
+  /* Fonts */
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ============================================================================
+   RESUME EDITOR THEME
+   ============================================================================ */
+:root.editor-theme {
+  /* Backgrounds */
+  --bg-primary: #0a0e27;
+  --bg-secondary: #151a33;
+  --bg-tertiary: #1a2142;
+
+  /* Borders */
+  --border-color: rgba(148, 163, 184, 0.1);
+
+  /* Accent Colors */
+  --accent-primary: #00d4ff;
+  --accent-secondary: #7c3aed;
+
+  /* Typography */
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  /* Semantic Colors */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  /* Fonts */
+  --font-body: 'Inter', sans-serif;
+  --font-heading: 'Sora', sans-serif;
+}
+
+/* ============================================================================
+   PUBLIC PROFILE THEME
+   ============================================================================ */
+:root.profile-theme {
+  /* Backgrounds */
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-accent: #0f4c75;
+  --bg-highlight: #3282b8;
+
+  /* Card / Glass */
+  --card-bg: rgba(22, 33, 62, 0.6);
+  --glass: rgba(255, 255, 255, 0.05);
+
+  /* Typography */
+  --text-light: #e8e8e8;
+  --text-muted: #a0a0a0;
+
+  /* Fonts */
+  --font-body: 'Work Sans', sans-serif;
+  --font-display: 'Playfair Display', serif;
+}
+
+/* ============================================================================
+   GLOBAL DEFAULT THEME (Admin)
+   ============================================================================ */
+:root {
+  /* Backgrounds */
+  --bg-dark: #0d1117;
+  --bg-panel: #161b22;
+  --bg-elevated: #1c2128;
+
+  /* Borders */
+  --border: #30363d;
+
+  /* Typography */
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+
+  /* Accent Colors */
+  --accent-blue: #58a6ff;
+  --accent-purple: #bc8cff;
+  --accent-green: #3fb950;
+  --accent-orange: #f0883e;
+  --accent-red: #f85149;
+
+  /* Semantic Colors */
+  --success: #238636;
+  --warning: #9e6a03;
+  --danger: #da3633;
+
+  /* Fonts */
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-heading: 'Sora', sans-serif;
+  --font-display: 'Playfair Display', serif;
+
+  /* ========================================================================
+     SPACING SCALE
+     ======================================================================== */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-30: 30px;
+  --space-40: 40px;
+  --space-50: 50px;
+
+  /* Container Padding */
+  --padding-container: var(--space-40);
+  --padding-main: var(--space-40) var(--space-50);
+  --padding-sidebar: var(--space-30) 0;
+  --padding-profile: var(--space-40) var(--space-20);
+
+  /* Panel Internal Padding */
+  --padding-panel-header: var(--space-25) var(--space-30);
+  --padding-panel-body: var(--space-20) var(--space-30);
+  --padding-panel: var(--space-40);
+  --padding-panel-preview: var(--space-30);
+
+  /* Gap System */
+  --gap-stats: 25px;
+  --gap-content: 30px;
+  --gap-editor: 30px;
+  --gap-dashboard: 25px;
+  --gap-projects: 25px;
+  --gap-form: 25px;
+  --gap-list: 15px;
+  --gap-nav: 5px;
+
+  /* ========================================================================
+     BORDER RADIUS
+     ======================================================================== */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+  --radius-full: 50%;
+
+  /* ========================================================================
+     TRANSITIONS & ANIMATIONS
+     ======================================================================== */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-chart: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ========================================================================
+     SHADOWS
+     ======================================================================== */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 10px 40px rgba(88, 166, 255, 0.2);
+  --shadow-xl: 0 20px 60px rgba(48, 130, 184, 0.3);
+  --shadow-glow: 0 0 30px rgba(88, 166, 255, 0.15);
+
+  /* ========================================================================
+     Z-INDEX SCALE
+     ======================================================================== */
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-fixed: 30;
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
+  --z-tooltip: 60;
+  --z-notification: 70;
+}
+
+/* ============================================================================
+   TYPOGRAPHY SCALE - Admin View
+   ============================================================================ */
+.admin-theme {
+  --font-h1-size: 42px;
+  --font-h1-weight: 700;
+  --font-stat-value-size: 38px;
+  --font-stat-value-weight: 700;
+  --font-panel-title-size: 20px;
+  --font-panel-title-weight: 700;
+  --font-table-header-size: 12px;
+  --font-table-header-weight: 700;
+  --font-table-cell-size: 14px;
+  --font-stat-label-size: 13px;
+  --font-stat-label-weight: 700;
+  --font-badge-size: 11px;
+  --font-badge-weight: 700;
+}
+
+/* ============================================================================
+   TYPOGRAPHY SCALE - Editor View
+   ============================================================================ */
+.editor-theme {
+  --font-page-title-size: 36px;
+  --font-page-title-weight: 700;
+  --font-section-header-size: 24px;
+  --font-section-header-weight: 600;
+  --font-form-label-size: 14px;
+  --font-form-label-weight: 600;
+  --font-form-input-size: 15px;
+  --font-status-label-size: 13px;
+  --font-status-label-weight: 700;
+  --font-status-value-size: 16px;
+  --font-status-value-weight: 600;
+  --font-preview-name-size: 24px;
+  --font-preview-name-weight: 700;
+  --font-preview-role-size: 16px;
+}
+
+/* ============================================================================
+   TYPOGRAPHY SCALE - Profile View
+   ============================================================================ */
+.profile-theme {
+  --font-h1-size: 56px;
+  --font-h1-weight: 700;
+  --font-tagline-size: 24px;
+  --font-tagline-weight: 300;
+  --font-stat-number-size: 42px;
+  --font-stat-number-weight: 700;
+  --font-panel-title-size: 28px;
+  --font-panel-title-weight: 600;
+  --font-timeline-title-size: 20px;
+  --font-timeline-title-weight: 600;
+  --font-timeline-date-size: 13px;
+  --font-timeline-date-weight: 600;
+  --font-about-text-size: 17px;
+  --font-about-line-height: 1.8;
+  --font-education-degree-size: 18px;
+  --font-education-degree-weight: 600;
+  --font-project-title-size: 20px;
+  --font-project-title-weight: 600;
+  --font-project-desc-size: 15px;
+  --font-tech-badge-size: 13px;
+}
+
+/* ============================================================================
+   GRADIENT PATTERNS
+   ============================================================================ */
+:root {
+  /* Text Gradients */
+  --gradient-text-admin: linear-gradient(135deg, #58a6ff, #bc8cff);
+  --gradient-text-editor: linear-gradient(135deg, #00d4ff, #7c3aed);
+  --gradient-text-profile: linear-gradient(135deg, #ffffff, #3282b8);
+
+  /* Button Gradients */
+  --gradient-btn-editor: linear-gradient(135deg, #00d4ff, #7c3aed);
+  --gradient-btn-profile: linear-gradient(135deg, #0f4c75, #3282b8);
+
+  /* Bar & Chart Gradients */
+  --gradient-chart: linear-gradient(180deg, #58a6ff, #bc8cff);
+  --gradient-avatar: linear-gradient(135deg, #58a6ff, #bc8cff);
+
+  /* Sidebar Active Indicator */
+  --gradient-nav-active: linear-gradient(135deg, #00d4ff, #7c3aed);
+}
+
+/* ============================================================================
+   GLASS MORPHISM PATTERNS
+   ============================================================================ */
+:root {
+  /* Editor Glass */
+  --glass-editor-bg: rgba(255, 255, 255, 0.03);
+  --glass-editor-backdrop: blur(10px);
+  --glass-editor-border: 1px solid rgba(148, 163, 184, 0.1);
+
+  /* Profile Glass */
+  --glass-profile-bg: rgba(22, 33, 62, 0.6);
+  --glass-profile-backdrop: blur(10px);
+  --glass-profile-border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================================================
+   ACCESSIBILITY - Respect user preferences
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  /* Can add light theme here if needed */
+}
