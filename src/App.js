@@ -11,11 +11,13 @@ import LoginPage    from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 
 // /* ── USER PAGES ── */
-// import Dashboard        from "./pages/User/Dashboard";
-// import ResumesPage      from "./pages/User/ResumesPage";
-// import ResumeEditorPage from "./pages/User/ResumeEditorPage";
-// import TemplatesPage    from "./pages/User/TemplatesPage";
-// import AnalyticsPage    from "./pages/User/AnalyticsPage";
+import Dashboard        from "./pages/user/Dashboard";
+import ResumesPage      from "./pages/user/ResumesPage";
+import ResumeEditorPage from "./pages/user/ResumeEditorPage";
+import ResumeCreatePage from "./pages/user/ResumeCreatePage";
+import TemplatesPage    from "./pages/user/TemplatesPage";
+import AnalyticsPage    from "./pages/user/AnalyticsPage";
+import SettingsPage     from "./pages/user/SettingsPage";
 
 
 /* ── ADMIN PAGES ── */
@@ -25,11 +27,12 @@ import AdminPendingPage from "./pages/admin/AdminPendingPage";
 
 import AdminLayoutsPage from "./pages/admin/AdminLayoutsPage";
 import AdminThemeBuilderPage from "./pages/admin/AdminThemeBuilderPage";
-import Dashboard from "./pages/Userss/Dashboard";
-import ResumesPage from "./pages/Userss/ResumesPage";
-import ResumeEditorPage from "./pages/Userss/ResumeEditorPage";
-import TemplatesPage from "./pages/Userss/TemplatesPage";
-import AnalyticsPage from "./pages/Userss/AnalyticsPage";
+// import Dashboard from "./pages/Userss/Dashboard";
+// import ResumesPage from "./pages/Userss/ResumesPage";
+// import ResumeEditorPage from "./pages/Userss/ResumeEditorPage";
+// import TemplatesPage from "./pages/Userss/TemplatesPage";
+// import AnalyticsPage from "./pages/Userss/AnalyticsPage";
+import ContactsPage from "./pages/user/ContactsPage";
 
 
 function App() {
@@ -68,6 +71,14 @@ function App() {
             }
           />
           <Route
+            path="/resumes/new"
+            element={
+              <ProtectedRoute role="ROLE_USER">
+                <ResumeCreatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/resumes/:resumeId"
             element={
               <ProtectedRoute role="ROLE_USER">
@@ -91,6 +102,11 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/contacts" element={
+  <ProtectedRoute role="ROLE_USER">
+    <ContactsPage />
+  </ProtectedRoute>
+} />
           {/* <Route
             path="/analytics/:resumeId"
             element={

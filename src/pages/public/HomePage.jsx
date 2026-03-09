@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const features = [
   {
@@ -40,7 +41,14 @@ const testimonials = [
 
 export default function HomePage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);

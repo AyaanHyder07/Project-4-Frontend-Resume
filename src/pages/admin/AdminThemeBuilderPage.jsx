@@ -1,89 +1,123 @@
+// AdminThemeStudioPage.jsx
+// ─────────────────────────────────────────────────────────────────────────────
+// Full Theme Studio  •  Steps: Colors → Typography → Background → Effects →
+//                             Layout → Audience → Publish
+// • Real-time live preview (click any zone to jump to that editor step)
+// • html2canvas screenshot → /api/admin/upload/preview → Cloudinary URL stored
+// • Maps to new backend DTOs: colorPalette, background (gradient/texture),
+//   typography (every property), effects (grain, glass, neumorphism, dividers)
+// • Layout + Template created atomically in one publish flow
+// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useRef, useCallback } from "react";
 import AdminDashboardLayout from "../../components/admin/AdminDashboardLayout";
-import { themeAPI, layoutAPI, templateAPI } from "../../api/endpoints";
+import { adminThemeAPI, adminLayoutAPI, adminTemplateAPI } from "../../api/api";
 
-/* ═══════════════════════════════════════════════════════════════
-   INJECT FONTS + KEYFRAMES
-═══════════════════════════════════════════════════════════════ */
-const FONT_INJECT = `
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Playfair+Display:wght@400;700&family=Lora:wght@400;600&family=DM+Sans:wght@300;400;500;600;700&family=Raleway:wght@300;400;600;700&family=Josefin+Sans:wght@300;400;600&family=Merriweather:wght@300;400;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap');
-@keyframes fadeSlideIn { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+/* ══════════════════════════════════════════════════════════════
+   GLOBAL STYLES INJECTION
+══════════════════════════════════════════════════════════════ */
+const GLOBAL_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:wght@400;600&family=DM+Sans:wght@300;400;500;600;700&family=Raleway:wght@300;400;600;700&family=Josefin+Sans:wght@300;400;600&family=Merriweather:wght@300;400;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;600;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+
+@keyframes studioFadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes studioPop { 0%{transform:scale(0.85);opacity:0} 65%{transform:scale(1.04)} 100%{transform:scale(1);opacity:1} }
+@keyframes studioSlide { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+@keyframes spin { to { transform:rotate(360deg); } }
 @keyframes shimmer { 0%,100%{opacity:0.4} 50%{opacity:1} }
-@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes popIn { 0%{transform:scale(0.85);opacity:0} 70%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
-@keyframes slideRight { from{transform:translateX(-20px);opacity:0} to{transform:translateX(0);opacity:1} }
-@keyframes glow { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0)} 50%{box-shadow:0 0 0 8px rgba(99,102,241,0.15)} }
-.ts-fade { animation: fadeSlideIn 0.35s cubic-bezier(0.16,1,0.3,1) both; }
-.ts-pop { animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
-.ts-slide { animation: slideRight 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+@keyframes checkBounce { 0%{transform:scale(0)} 60%{transform:scale(1.3)} 100%{transform:scale(1)} }
+
+.ts-fade  { animation: studioFadeUp  0.38s cubic-bezier(0.16,1,0.3,1) both; }
+.ts-pop   { animation: studioPop     0.32s cubic-bezier(0.34,1.56,0.64,1) both; }
+.ts-slide { animation: studioSlide   0.28s cubic-bezier(0.16,1,0.3,1) both; }
+
+input[type=range] { -webkit-appearance:none; height:5px; border-radius:99px; outline:none; cursor:pointer; background:transparent; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#1a1a2e; border:2.5px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,0.25); cursor:pointer; transition:transform 0.15s; }
+input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.2); }
+
+.studio-scroll::-webkit-scrollbar { width:4px; }
+.studio-scroll::-webkit-scrollbar-track { background:transparent; }
+.studio-scroll::-webkit-scrollbar-thumb { background:#e2e8f0; border-radius:4px; }
 `;
 
-/* ═══════════════════════════════════════════════════════════════
-   DATA
-═══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════════════════════════════ */
+const STEP_CFG = [
+  { id: 1, icon: "🎨", label: "Colors", short: "Palette & Mood" },
+  { id: 2, icon: "Aa", label: "Typography", short: "Fonts & Sizes" },
+  { id: 3, icon: "🖼", label: "Background", short: "Gradients & Texture" },
+  { id: 4, icon: "✨", label: "Effects", short: "Cards & Motion" },
+  { id: 5, icon: "📐", label: "Layout", short: "Structure & Zones" },
+  { id: 6, icon: "🎯", label: "Audience", short: "Who It's For" },
+  { id: 7, icon: "🚀", label: "Publish", short: "Review & Launch" },
+];
+
 const FONTS = [
+  {
+    label: "Fraunces",
+    val: "'Fraunces',Georgia,serif",
+    cat: "Serif",
+    vibe: "Unique · Literary",
+  },
   {
     label: "Cormorant Garamond",
     val: "'Cormorant Garamond',Georgia,serif",
-    cat: "✦ Serif",
-    preview: "Timeless Elegance",
+    cat: "Serif",
     vibe: "Editorial · Luxury",
   },
   {
     label: "Playfair Display",
     val: "'Playfair Display',Georgia,serif",
-    cat: "✦ Serif",
-    preview: "Grand Statement",
+    cat: "Serif",
     vibe: "Classic · Magazine",
   },
   {
     label: "Lora",
     val: "'Lora',Georgia,serif",
-    cat: "✦ Serif",
-    preview: "Literary Soul",
+    cat: "Serif",
     vibe: "Academic · Warm",
   },
   {
     label: "Merriweather",
     val: "'Merriweather',Georgia,serif",
-    cat: "✦ Serif",
-    preview: "Solid Authority",
+    cat: "Serif",
     vibe: "Corporate · Trust",
   },
   {
     label: "DM Sans",
     val: "'DM Sans',sans-serif",
-    cat: "○ Sans",
-    preview: "Modern Clean",
+    cat: "Sans",
     vibe: "Tech · Startup",
+  },
+  {
+    label: "Outfit",
+    val: "'Outfit',sans-serif",
+    cat: "Sans",
+    vibe: "Modern · Clean",
   },
   {
     label: "Raleway",
     val: "'Raleway',sans-serif",
-    cat: "○ Sans",
-    preview: "Refined Edge",
+    cat: "Sans",
     vibe: "Design · Agency",
   },
   {
     label: "Josefin Sans",
     val: "'Josefin Sans',sans-serif",
-    cat: "○ Sans",
-    preview: "Geometric Pure",
+    cat: "Sans",
     vibe: "Minimal · Swedish",
   },
   {
     label: "Bebas Neue",
     val: "'Bebas Neue',sans-serif",
-    cat: "▲ Display",
-    preview: "BOLD IMPACT",
+    cat: "Display",
     vibe: "Fashion · Sports",
   },
   {
     label: "Space Mono",
     val: "'Space Mono',monospace",
-    cat: "⌨ Mono",
-    preview: "Code & Craft",
+    cat: "Mono",
     vibe: "Developer · Cyber",
   },
 ];
@@ -91,1081 +125,2991 @@ const FONTS = [
 const QUICK_PALETTES = [
   {
     name: "Obsidian",
-    emoji: "🖤",
     bg: "#F5F3EE",
     pri: "#1C1C1C",
     sec: "#8A8578",
     acc: "#4A6FA5",
     txt: "#1C1C1C",
-  },
-  {
-    name: "Ocean",
-    emoji: "🌊",
-    bg: "#EFF6FF",
-    pri: "#1e3a5f",
-    sec: "#4a7ab5",
-    acc: "#0ea5e9",
-    txt: "#0f172a",
-  },
-  {
-    name: "Forest",
-    emoji: "🌿",
-    bg: "#F0F4F0",
-    pri: "#1a3320",
-    sec: "#4a7a5a",
-    acc: "#22c55e",
-    txt: "#1a2e1a",
-  },
-  {
-    name: "Rose Noir",
-    emoji: "🌹",
-    bg: "#FFF1F2",
-    pri: "#881337",
-    sec: "#be123c",
-    acc: "#f43f5e",
-    txt: "#1c0a0d",
-  },
-  {
-    name: "Amethyst",
-    emoji: "💜",
-    bg: "#FAF5FF",
-    pri: "#4c1d95",
-    sec: "#7c3aed",
-    acc: "#a78bfa",
-    txt: "#1e1b4b",
-  },
-  {
-    name: "Copper",
-    emoji: "🔶",
-    bg: "#FEFCE8",
-    pri: "#713f12",
-    sec: "#a16207",
-    acc: "#eab308",
-    txt: "#422006",
-  },
-  {
-    name: "Glacier",
-    emoji: "❄️",
-    bg: "#F0F9FF",
-    pri: "#0c4a6e",
-    sec: "#0284c7",
-    acc: "#38bdf8",
-    txt: "#082f49",
+    sur: "#EDEBE6",
   },
   {
     name: "Midnight",
-    emoji: "🌙",
     bg: "#0f172a",
     pri: "#e2e8f0",
     sec: "#94a3b8",
     acc: "#38bdf8",
     txt: "#f1f5f9",
+    sur: "#1e293b",
+  },
+  {
+    name: "Rose Noir",
+    bg: "#FFF1F2",
+    pri: "#881337",
+    sec: "#be123c",
+    acc: "#f43f5e",
+    txt: "#1c0a0d",
+    sur: "#FFE4E6",
+  },
+  {
+    name: "Amethyst",
+    bg: "#FAF5FF",
+    pri: "#4c1d95",
+    sec: "#7c3aed",
+    acc: "#a78bfa",
+    txt: "#1e1b4b",
+    sur: "#EDE9FE",
+  },
+  {
+    name: "Forest",
+    bg: "#F0F4F0",
+    pri: "#1a3320",
+    sec: "#4a7a5a",
+    acc: "#22c55e",
+    txt: "#1a2e1a",
+    sur: "#DCFCE7",
+  },
+  {
+    name: "Copper",
+    bg: "#FEFCE8",
+    pri: "#713f12",
+    sec: "#a16207",
+    acc: "#d97706",
+    txt: "#422006",
+    sur: "#FEF9C3",
+  },
+  {
+    name: "Glacier",
+    bg: "#F0F9FF",
+    pri: "#0c4a6e",
+    sec: "#0284c7",
+    acc: "#38bdf8",
+    txt: "#082f49",
+    sur: "#E0F2FE",
+  },
+  {
+    name: "Neon Noir",
+    bg: "#0a0a10",
+    pri: "#ff2d78",
+    sec: "#8b5cf6",
+    acc: "#00f5d4",
+    txt: "#f0f0ff",
+    sur: "#16162a",
   },
 ];
 
-const LAYOUTS = [
+const MOODS = [
+  {
+    id: "CLEAN_MINIMAL",
+    label: "Clean Minimal",
+    emoji: "○",
+    desc: "Whitespace, light",
+  },
+  {
+    id: "BOLD_VIBRANT",
+    label: "Bold Vibrant",
+    emoji: "⚡",
+    desc: "High contrast, vivid",
+  },
+  {
+    id: "DARK_DRAMATIC",
+    label: "Dark Dramatic",
+    emoji: "🌑",
+    desc: "Dark, glows, depth",
+  },
+  {
+    id: "EARTHY_ORGANIC",
+    label: "Earthy Organic",
+    emoji: "🌿",
+    desc: "Muted, natural",
+  },
+  {
+    id: "LUXURY_ELEGANT",
+    label: "Luxury Elegant",
+    emoji: "✦",
+    desc: "Gold, serif, editorial",
+  },
+  {
+    id: "PLAYFUL_QUIRKY",
+    label: "Playful Quirky",
+    emoji: "🎈",
+    desc: "Pastels, rounded, fun",
+  },
+  {
+    id: "CORPORATE_FORMAL",
+    label: "Corporate Formal",
+    emoji: "🏢",
+    desc: "Navy, structured",
+  },
+  {
+    id: "RETRO_VINTAGE",
+    label: "Retro Vintage",
+    emoji: "📼",
+    desc: "Aged, worn textures",
+  },
+  {
+    id: "FUTURISTIC_TECH",
+    label: "Futuristic Tech",
+    emoji: "🤖",
+    desc: "Neon, grid, dark",
+  },
+  {
+    id: "ARTISTIC_EXPRESSIVE",
+    label: "Artistic Expressive",
+    emoji: "🖌",
+    desc: "Painterly, creative",
+  },
+];
+
+const TEXTURE_TYPES = [
+  { id: "NONE", label: "None", emoji: "○" },
+  { id: "GRAIN", label: "Film Grain", emoji: "◌" },
+  { id: "PAPER", label: "Paper", emoji: "📄" },
+  { id: "CANVAS", label: "Canvas", emoji: "🎨" },
+  { id: "CONCRETE", label: "Concrete", emoji: "🪨" },
+  { id: "MARBLE", label: "Marble", emoji: "💎" },
+  { id: "WATERCOLOR_WASH", label: "Watercolor", emoji: "🌊" },
+  { id: "HALFTONE", label: "Halftone", emoji: "◉" },
+  { id: "TOPOGRAPHIC", label: "Topographic", emoji: "🗺" },
+  { id: "GLASS_FROSTED", label: "Frosted Glass", emoji: "🔮" },
+];
+
+const GRADIENT_TYPES = [
+  { id: "LINEAR", label: "Linear", emoji: "↗" },
+  { id: "RADIAL", label: "Radial", emoji: "◎" },
+  { id: "CONIC", label: "Conic", emoji: "🌀" },
+];
+
+const LAYOUT_TYPES = [
   {
     id: "SINGLE_COLUMN",
     label: "Classic",
     emoji: "📄",
-    desc: "Full-width · Traditional · ATS-Safe",
-    tags: ["Corporate", "Finance", "Law", "HR"],
-    best: "Safe choice for most industries",
+    desc: "ATS-safe, universal",
   },
-  {
-    id: "TWO_COLUMN",
-    label: "Split",
-    emoji: "⚡",
-    desc: "Equal columns · Modern balance",
-    tags: ["Product", "Engineering", "Consulting"],
-    best: "Shows off both skills and experience equally",
-  },
+  { id: "TWO_COLUMN", label: "Split", emoji: "⚡", desc: "Equal balance" },
   {
     id: "LEFT_SIDEBAR",
-    label: "Sidebar Left",
+    label: "Sidebar L",
     emoji: "◧",
-    desc: "Dark sidebar · Wide content area",
-    tags: ["Designer", "Developer", "Creative"],
-    best: "Makes skills pop in a sleek sidebar",
+    desc: "Dark sidebar + main",
   },
   {
     id: "RIGHT_SIDEBAR",
-    label: "Sidebar Right",
+    label: "Sidebar R",
     emoji: "◨",
-    desc: "Wide content · Accent sidebar",
-    tags: ["Marketing", "Sales", "PR"],
-    best: "Content-first with supporting details aside",
+    desc: "Content first",
   },
-  {
-    id: "MODERN_GRID",
-    label: "Grid",
-    emoji: "⊞",
-    desc: "2×2 card grid · Structured sections",
-    tags: ["Tech", "Data", "Product", "PM"],
-    best: "Clear structure, great for section-heavy resumes",
-  },
-  {
-    id: "MASONRY",
-    label: "Masonry",
-    emoji: "🧱",
-    desc: "Staggered height · Dynamic flow",
-    tags: ["Artist", "Architect", "Creative Dir"],
-    best: "Visually interesting, stands out from the pile",
-  },
-  {
-    id: "GALLERY",
-    label: "Gallery",
-    emoji: "🖼️",
-    desc: "Photo-first · Project grid showcase",
-    tags: ["Photographer", "Illustrator", "3D Artist"],
-    best: "Let your work speak — visuals front and center",
-  },
-  {
-    id: "TIMELINE",
-    label: "Timeline",
-    emoji: "📅",
-    desc: "Vertical story arc · Journey focus",
-    tags: ["Consultant", "Executive", "Founder"],
-    best: "For careers with a compelling progression story",
-  },
+  { id: "MODERN_GRID", label: "Grid", emoji: "⊞", desc: "Structured sections" },
+  { id: "MASONRY", label: "Masonry", emoji: "🧱", desc: "Dynamic flow" },
+  { id: "GALLERY", label: "Gallery", emoji: "🖼", desc: "Visual-first" },
+  { id: "TIMELINE", label: "Timeline", emoji: "📅", desc: "Career story" },
   {
     id: "INFOGRAPHIC",
     label: "Infographic",
     emoji: "📊",
-    desc: "Stats · Skill bars · Visual data",
-    tags: ["Data Scientist", "Analyst", "Engineer"],
-    best: "Show your numbers — metrics-driven personalities",
+    desc: "Stats & data",
   },
   {
     id: "BOLD_HEADER",
     label: "Bold Header",
     emoji: "🎯",
-    desc: "Full-bleed gradient hero · Impact opening",
-    tags: ["Brand", "Marketing", "C-Suite"],
-    best: "First impression is everything — make it count",
+    desc: "Full-bleed hero",
   },
-  {
-    id: "MINIMALIST",
-    label: "Minimalist",
-    emoji: "◻",
-    desc: "Ultra white space · Refined typography",
-    tags: ["Executive", "VC", "Lawyer", "Finance"],
-    best: "Less is more — confidence through restraint",
-  },
-  {
-    id: "MAGAZINE",
-    label: "Magazine",
-    emoji: "📖",
-    desc: "Editorial hero · Big name · Story layout",
-    tags: ["Journalist", "Writer", "Editor", "Media"],
-    best: "For storytellers who want drama and flair",
-  },
+  { id: "MINIMALIST", label: "Minimalist", emoji: "◻", desc: "Ultra refined" },
+  { id: "MAGAZINE", label: "Magazine", emoji: "📖", desc: "Editorial drama" },
 ];
 
-const PROFESSIONS = [
-  { id: "SOFTWARE_ENGINEER", label: "Software Engineer", emoji: "💻" },
-  { id: "DESIGNER", label: "Designer", emoji: "🎨" },
-  { id: "PRODUCT_MANAGER", label: "Product Manager", emoji: "📋" },
-  { id: "DATA_SCIENTIST", label: "Data Scientist", emoji: "📊" },
-  { id: "MARKETING", label: "Marketing", emoji: "📣" },
-  { id: "FINANCE", label: "Finance", emoji: "💰" },
-  { id: "HEALTHCARE", label: "Healthcare", emoji: "🏥" },
-  { id: "EDUCATOR", label: "Educator", emoji: "📚" },
-  { id: "LEGAL", label: "Legal", emoji: "⚖️" },
-  { id: "PHOTOGRAPHER", label: "Photographer", emoji: "📷" },
-  { id: "ARTIST", label: "Artist", emoji: "🖼️" },
-  { id: "WRITER", label: "Writer", emoji: "✍️" },
-  { id: "ARCHITECT", label: "Architect", emoji: "🏛️" },
-  { id: "CONSULTANT", label: "Consultant", emoji: "🤝" },
-  { id: "GENERAL", label: "General", emoji: "🌐" },
+const AUDIENCES = [
+  "ARTIST",
+  "PHOTOGRAPHER",
+  "ILLUSTRATOR",
+  "GRAPHIC_DESIGNER",
+  "MUSICIAN",
+  "SINGER",
+  "DANCER",
+  "ACTOR",
+  "FILMMAKER",
+  "WRITER",
+  "JOURNALIST",
+  "SOFTWARE_ENGINEER",
+  "DATA_SCIENTIST",
+  "PRODUCT_MANAGER",
+  "UX_DESIGNER",
+  "GAME_DEVELOPER",
+  "DOCTOR",
+  "NURSE",
+  "THERAPIST",
+  "LAWYER",
+  "ACADEMIC",
+  "RESEARCHER",
+  "FINANCIAL_ANALYST",
+  "CONSULTANT",
+  "ARCHITECT",
+  "ENGINEER",
+  "ENTREPRENEUR",
+  "FOUNDER",
+  "COACH",
+  "SPEAKER",
+  "STUDENT",
+  "EXECUTIVE",
+  "FREELANCER",
 ];
 
-const NAME_SUGGESTIONS = [
-  "Obsidian Noir",
-  "Sage & Stone",
-  "Champagne Edit",
-  "Blueprint Pro",
-  "Arctic Minimal",
-  "Terra Classic",
-  "Dusk Modern",
-  "Crimson Editorial",
-  "Ivory Serif",
-  "Midnight Gallery",
-  "Canvas Studio",
-  "Steel Grid",
-  "Golden Hour",
-  "Onyx Executive",
-  "Coral Creative",
-  "Ink & Paper",
-  "Velvet Dark",
-  "Ash & Ember",
-  "Seafoam Pro",
-  "Midnight Ink",
+const SECTIONS_ALL = [
+  "PERSONAL_INFO",
+  "SUMMARY",
+  "EXPERIENCE",
+  "EDUCATION",
+  "SKILLS",
+  "PROJECTS",
+  "CERTIFICATIONS",
+  "AWARDS",
+  "LANGUAGES",
+  "PUBLICATIONS",
+  "VOLUNTEERING",
+  "REFERENCES",
+  "PORTFOLIO",
+  "CONTACT",
 ];
 
-const DEFAULT_CFG = {
+const PLAN_LEVELS = [
+  { id: "FREE", emoji: "🆓", label: "Free", desc: "Everyone" },
+  { id: "BASIC", emoji: "⭐", label: "Basic", desc: "Basic plan+" },
+  { id: "PRO", emoji: "💎", label: "Pro", desc: "Pro subscribers" },
+  { id: "PREMIUM", emoji: "👑", label: "Premium", desc: "Top tier only" },
+];
+
+/* ══════════════════════════════════════════════════════════════
+   DEFAULT STATE
+══════════════════════════════════════════════════════════════ */
+const DEF = {
   name: "",
   description: "",
-  primaryColor: "#1C1C1C",
-  secondaryColor: "#8A8578",
-  accentColor: "#4A6FA5",
-  backgroundColor: "#F5F3EE",
-  textColor: "#1C1C1C",
-  fontFamily: "'Cormorant Garamond',Georgia,serif",
-  borderRadius: "8",
-  layoutType: "SINGLE_COLUMN",
-  professionTags: ["GENERAL"],
-  planLevel: "FREE",
+  tagline: "",
+  featured: false,
+  mood: "CLEAN_MINIMAL",
+  requiredPlan: "FREE",
+  targetAudiences: [],
+  // color palette (all 14 fields)
+  primary: "#1C1C1C",
+  secondary: "#8A8578",
+  accent: "#4A6FA5",
+  surfaceBackground: "#EDEBE6",
+  pageBackground: "#F5F3EE",
+  textPrimary: "#1C1C1C",
+  textSecondary: "#5A5550",
+  textMuted: "#9A9590",
+  borderColor: "#D5D3CE",
+  dividerColor: "#E5E3DE",
+  glowColor: "#4A6FA5",
+  shadowColor: "rgba(0,0,0,0.15)",
+  tagBackground: "#E5E8F0",
+  tagText: "#4A6FA5",
+  // background
+  bgType: "SOLID",
+  solidColor: "#F5F3EE",
+  gradientType: "LINEAR",
+  gradientAngle: 135,
+  gradientStops: [
+    { color: "#4A6FA5", position: 0 },
+    { color: "#1C1C1C", position: 100 },
+  ],
+  grainy: false,
+  grainIntensity: 30,
+  textureType: "NONE",
+  textureOpacity: 40,
+  textureBlendMode: "overlay",
+  imageUrl: "",
+  imageBlendMode: "normal",
+  imageOpacity: 100,
+  // typography
+  headingFont: "'Cormorant Garamond',Georgia,serif",
+  bodyFont: "'DM Sans',sans-serif",
+  accentFont: "",
+  baseSize: 1.0,
+  headingScale: 2.5,
+  subheadingScale: 1.5,
+  headingWeight: 700,
+  bodyWeight: 400,
+  headingTransform: "none",
+  headingStyle: "normal",
+  headingLetterSpacing: 0,
+  bodyLineHeight: 1.65,
+  headingLineHeight: 1.1,
+  // effects
+  cardBorderRadius: "8px",
+  cardShadow: "0 4px 16px rgba(0,0,0,0.08)",
+  cardBorderStyle: "1px solid rgba(0,0,0,0.06)",
+  cardBackdropFilter: "",
+  enableScrollReveal: true,
+  enableHoverLift: true,
+  enableParallax: false,
+  transitionSpeed: "medium",
+  enableGlassmorphism: false,
+  enableNeumorphism: false,
+  enableGrain: false,
+  globalGrainIntensity: 25,
+  sectionDividerStyle: "none",
+  // layout
+  layoutType: "LEFT_SIDEBAR",
+  supportedSections: [...SECTIONS_ALL],
+  requiredSections: ["PERSONAL_INFO", "CONTACT"],
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   LIVE MINI PREVIEW
-═══════════════════════════════════════════════════════════════ */
-function MiniPreview({ cfg, scale = 1, layout: overrideLayout }) {
-  const layout = overrideLayout || cfg.layoutType;
-  const br = parseInt(cfg.borderRadius || 8);
-  const ff = cfg.fontFamily;
-  const p = cfg.primaryColor;
-  const s = cfg.secondaryColor;
-  const a = cfg.accentColor;
-  const bg = cfg.backgroundColor;
-  const tx = cfg.textColor;
-
-  const baseStyle = {
-    fontFamily: ff,
-    background: bg,
-    color: tx,
-    borderRadius: br + 4 + "px",
-    overflow: "hidden",
-    border: `1.5px solid ${p}30`,
-    boxShadow: "0 2px 12px rgba(0,0,0,0.1)",
-    fontSize: 10 * scale + "px",
-    transform: `scale(${scale})`,
-    transformOrigin: "top left",
-    transition: "all 0.4s cubic-bezier(0.16,1,0.3,1)",
+/* ══════════════════════════════════════════════════════════════
+   PAYLOAD BUILDER
+══════════════════════════════════════════════════════════════ */
+function buildPayload(cfg, previewUrl) {
+  return {
+    name: cfg.name,
+    description: cfg.description,
+    tagline: cfg.tagline,
+    featured: cfg.featured,
+    mood: cfg.mood,
+    targetAudiences: cfg.targetAudiences,
+    requiredPlan: cfg.requiredPlan,
+    previewImageUrl: previewUrl || null,
+    colorPalette: {
+      primary: cfg.primary,
+      secondary: cfg.secondary,
+      accent: cfg.accent,
+      surfaceBackground: cfg.surfaceBackground,
+      pageBackground: cfg.pageBackground,
+      textPrimary: cfg.textPrimary,
+      textSecondary: cfg.textSecondary,
+      textMuted: cfg.textMuted,
+      borderColor: cfg.borderColor,
+      dividerColor: cfg.dividerColor,
+      glowColor: cfg.glowColor,
+      shadowColor: cfg.shadowColor,
+      tagBackground: cfg.tagBackground,
+      tagText: cfg.tagText,
+    },
+    background: {
+      type: cfg.bgType,
+      solidColor: cfg.bgType === "SOLID" ? cfg.solidColor : null,
+      gradient:
+        cfg.bgType === "GRADIENT"
+          ? {
+              gradientType: cfg.gradientType,
+              angle: cfg.gradientAngle + "deg",
+              stops: cfg.gradientStops.map((s) => ({
+                color: s.color,
+                position: s.position + "%",
+              })),
+              grainy: cfg.grainy,
+              grainIntensity: cfg.grainy ? cfg.grainIntensity : null,
+            }
+          : null,
+      textureOverlay:
+        cfg.textureType !== "NONE"
+          ? {
+              textureType: cfg.textureType,
+              opacity: cfg.textureOpacity,
+              blendMode: cfg.textureBlendMode,
+            }
+          : null,
+      imageUrl: cfg.bgType === "IMAGE" ? cfg.imageUrl : null,
+      imageBlendMode: cfg.imageBlendMode,
+      imageOpacity: cfg.imageOpacity,
+    },
+    typography: {
+      headingFont: cfg.headingFont,
+      bodyFont: cfg.bodyFont,
+      accentFont: cfg.accentFont || null,
+      baseSize: cfg.baseSize,
+      headingScale: cfg.headingScale,
+      subheadingScale: cfg.subheadingScale,
+      headingWeight: cfg.headingWeight,
+      bodyWeight: cfg.bodyWeight,
+      headingTransform: cfg.headingTransform,
+      headingStyle: cfg.headingStyle,
+      headingLetterSpacing: cfg.headingLetterSpacing,
+      bodyLineHeight: cfg.bodyLineHeight,
+      headingLineHeight: cfg.headingLineHeight,
+    },
+    effects: {
+      cardBorderRadius: cfg.cardBorderRadius,
+      cardShadow: cfg.cardShadow,
+      cardBorderStyle: cfg.cardBorderStyle,
+      cardBackdropFilter: cfg.cardBackdropFilter || null,
+      enableScrollReveal: cfg.enableScrollReveal,
+      enableHoverLift: cfg.enableHoverLift,
+      enableParallax: cfg.enableParallax,
+      transitionSpeed: cfg.transitionSpeed,
+      enableGlassmorphism: cfg.enableGlassmorphism,
+      enableNeumorphism: cfg.enableNeumorphism,
+      enableGrain: cfg.enableGrain,
+      globalGrainIntensity: cfg.enableGrain ? cfg.globalGrainIntensity : null,
+      sectionDividerStyle: cfg.sectionDividerStyle,
+    },
   };
+}
 
-  const Header = ({ name = "Alexandra Chen", title = "Senior Designer" }) => (
-    <div style={{ background: p, padding: `${8 * scale}px ${12 * scale}px` }}>
-      <div
-        style={{
-          color: "#fff",
-          fontWeight: 700,
-          fontSize: 13 * scale + "px",
-          marginBottom: 1,
-        }}
-      >
-        {name}
-      </div>
-      <div
-        style={{
-          color: "rgba(255,255,255,0.7)",
-          fontSize: 8 * scale + "px",
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-        }}
-      >
-        {title}
-      </div>
-    </div>
-  );
+/* ══════════════════════════════════════════════════════════════
+   UI ATOMS
+══════════════════════════════════════════════════════════════ */
+const iBase = {
+  width: "100%",
+  border: "1.5px solid #e8eaf0",
+  borderRadius: 10,
+  padding: "10px 13px",
+  fontSize: 13,
+  color: "#1a1a2e",
+  outline: "none",
+  background: "#f8f9fc",
+  fontFamily: "system-ui",
+  transition: "border-color 0.15s",
+  display: "block",
+};
 
-  const Line = ({ w = "100%", h = 5, col }) => (
+const SLabel = ({ children, sub }) => (
+  <div style={{ marginBottom: 7 }}>
     <div
       style={{
-        height: h * scale + "px",
-        width: w,
-        borderRadius: 3,
-        background: col || tx + "18",
-        marginBottom: 4 * scale + "px",
+        fontSize: 12,
+        fontWeight: 700,
+        color: "#1a1a2e",
+        fontFamily: "'Outfit',sans-serif",
+        letterSpacing: "-0.01em",
       }}
-    />
-  );
-
-  const Section = ({ label, children }) => (
-    <div style={{ marginBottom: 10 * scale + "px" }}>
+    >
+      {children}
+    </div>
+    {sub && (
       <div
         style={{
-          fontSize: 7 * scale + "px",
+          fontSize: 10,
+          color: "#94a3b8",
+          marginTop: 2,
+          fontFamily: "system-ui",
+        }}
+      >
+        {sub}
+      </div>
+    )}
+  </div>
+);
+
+const SInput = ({ value, onChange, placeholder, style = {} }) => (
+  <input
+    value={value}
+    onChange={(e) => onChange(e.target.value)}
+    placeholder={placeholder}
+    style={{ ...iBase, ...style }}
+  />
+);
+
+const SSlider = ({
+  label,
+  val,
+  onChange,
+  min = 0,
+  max = 100,
+  step = 1,
+  unit = "",
+}) => (
+  <div style={{ marginBottom: 16 }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 5,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 11.5,
+          fontWeight: 600,
+          color: "#374151",
+          fontFamily: "'Outfit',sans-serif",
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: 12,
+          fontFamily: "'Space Mono',monospace",
+          color: "#4f46e5",
           fontWeight: 700,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: a,
-          borderBottom: `1.5px solid ${a}44`,
-          paddingBottom: 2 * scale + "px",
-          marginBottom: 5 * scale + "px",
+          background: "#eef2ff",
+          padding: "2px 8px",
+          borderRadius: 6,
+        }}
+      >
+        {val}
+        {unit}
+      </span>
+    </div>
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={val}
+      onChange={(e) => onChange(Number(e.target.value))}
+      style={{
+        width: "100%",
+        background: `linear-gradient(to right,#1a1a2e ${((val - min) / (max - min)) * 100}%,#e2e8f0 0%)`,
+      }}
+    />
+    <div
+      style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}
+    >
+      <span style={{ fontSize: 9, color: "#cbd5e1", fontFamily: "system-ui" }}>
+        {min}
+        {unit}
+      </span>
+      <span style={{ fontSize: 9, color: "#cbd5e1", fontFamily: "system-ui" }}>
+        {max}
+        {unit}
+      </span>
+    </div>
+  </div>
+);
+
+const SToggle = ({ val, onChange, label, sub, accent = "#1a1a2e" }) => (
+  <div
+    onClick={() => onChange(!val)}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "11px 14px",
+      borderRadius: 12,
+      background: val ? accent : "#f8f9fc",
+      border: `1.5px solid ${val ? accent : "#e8eaf0"}`,
+      cursor: "pointer",
+      transition: "all 0.2s",
+      marginBottom: 8,
+    }}
+  >
+    <div>
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 600,
+          color: val ? "#fff" : "#374151",
+          fontFamily: "'Outfit',sans-serif",
         }}
       >
         {label}
       </div>
-      {children}
+      {sub && (
+        <div
+          style={{
+            fontSize: 10,
+            color: val ? "rgba(255,255,255,0.7)" : "#94a3b8",
+            fontFamily: "system-ui",
+          }}
+        >
+          {sub}
+        </div>
+      )}
     </div>
-  );
-
-  const Chip = ({ label }) => (
-    <span
-      style={{
-        display: "inline-block",
-        padding: `${2 * scale}px ${6 * scale}px`,
-        borderRadius: br + "px",
-        background: a + "22",
-        color: a,
-        fontSize: 7 * scale + "px",
-        marginRight: 3 * scale + "px",
-        marginBottom: 3 * scale + "px",
-        border: `1px solid ${a}44`,
-      }}
-    >
-      {label}
-    </span>
-  );
-
-  const SidebarBlock = () => (
     <div
       style={{
-        background: p + "0D",
-        padding: 10 * scale + "px",
-        borderRight: `1px solid ${p}15`,
-        minWidth: 90 * scale + "px",
+        width: 36,
+        height: 20,
+        borderRadius: 10,
+        background: val ? "rgba(255,255,255,0.35)" : "#d1d5db",
+        position: "relative",
+        flexShrink: 0,
+        transition: "background 0.2s",
       }}
     >
       <div
         style={{
-          width: 32 * scale + "px",
-          height: 32 * scale + "px",
+          position: "absolute",
+          top: 2,
+          left: val ? 18 : 2,
+          width: 16,
+          height: 16,
           borderRadius: "50%",
-          background: a + "33",
-          border: `2px solid ${a}66`,
-          marginBottom: 8 * scale + "px",
+          background: "#fff",
+          transition: "left 0.2s",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
         }}
       />
-      <Section label="Skills">
-        {[80, 65, 90, 70].map((w, i) => (
-          <div key={i} style={{ marginBottom: 4 * scale + "px" }}>
+    </div>
+  </div>
+);
+
+const SSelect = ({ label, val, onChange, options, sub }) => (
+  <div style={{ marginBottom: 14 }}>
+    {label && <SLabel sub={sub}>{label}</SLabel>}
+    <select
+      value={val}
+      onChange={(e) => onChange(e.target.value)}
+      style={{ ...iBase, cursor: "pointer" }}
+    >
+      {options.map((o) => (
+        <option key={o.id || o} value={o.id || o}>
+          {o.label || o}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+const CPicker = ({ val, onChange, label }) => (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 4,
+    }}
+  >
+    <div style={{ position: "relative", width: 40, height: 40 }}>
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          background: val,
+          border: "2.5px solid rgba(0,0,0,0.08)",
+          boxShadow: `0 2px 10px ${val}55`,
+          cursor: "pointer",
+          transition: "box-shadow 0.2s",
+        }}
+      />
+      <input
+        type="color"
+        value={val}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: 0,
+          cursor: "pointer",
+          width: "100%",
+          height: "100%",
+          border: "none",
+        }}
+      />
+    </div>
+    {label && (
+      <div
+        style={{
+          fontSize: 9,
+          color: "#64748b",
+          textAlign: "center",
+          maxWidth: 44,
+          lineHeight: 1.3,
+          fontFamily: "system-ui",
+        }}
+      >
+        {label}
+      </div>
+    )}
+  </div>
+);
+
+const BtnPrimary = ({ children, onClick, disabled, style = {} }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    style={{
+      background: "#1a1a2e",
+      color: "#fff",
+      border: "none",
+      borderRadius: 12,
+      padding: "12px 24px",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: disabled ? "not-allowed" : "pointer",
+      fontFamily: "'Outfit',sans-serif",
+      boxShadow: "0 4px 16px rgba(26,26,46,0.22)",
+      transition: "all 0.2s",
+      opacity: disabled ? 0.65 : 1,
+      ...style,
+    }}
+  >
+    {children}
+  </button>
+);
+
+const BtnGhost = ({ children, onClick, style = {} }) => (
+  <button
+    onClick={onClick}
+    style={{
+      background: "#f1f5f9",
+      color: "#475569",
+      border: "none",
+      borderRadius: 12,
+      padding: "12px 20px",
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer",
+      fontFamily: "'Outfit',sans-serif",
+      ...style,
+    }}
+  >
+    {children}
+  </button>
+);
+
+/* ══════════════════════════════════════════════════════════════
+   LIVE PREVIEW
+══════════════════════════════════════════════════════════════ */
+function LivePreview({ cfg, onZoneClick }) {
+  const [hov, setHov] = useState(null);
+  const ff = cfg.headingFont,
+    bf = cfg.bodyFont;
+  const p = cfg.primary,
+    acc = cfg.accent,
+    sec = cfg.secondary;
+  const bg = cfg.pageBackground,
+    sur = cfg.surfaceBackground;
+  const tx = cfg.textPrimary,
+    ts = cfg.textSecondary;
+  const br = cfg.cardBorderRadius;
+
+  let bgCSS = {};
+  if (cfg.bgType === "SOLID") bgCSS = { background: cfg.solidColor };
+  else if (cfg.bgType === "GRADIENT") {
+    const stops = cfg.gradientStops
+      .map((s) => `${s.color} ${s.position}%`)
+      .join(",");
+    const g =
+      cfg.gradientType === "RADIAL"
+        ? `radial-gradient(circle,${stops})`
+        : cfg.gradientType === "CONIC"
+          ? `conic-gradient(${stops})`
+          : `linear-gradient(${cfg.gradientAngle}deg,${stops})`;
+    bgCSS = { background: g };
+  } else if (cfg.bgType === "IMAGE" && cfg.imageUrl)
+    bgCSS = {
+      backgroundImage: `url(${cfg.imageUrl})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    };
+  else bgCSS = { background: bg };
+
+  const headSt = {
+    fontFamily: ff,
+    fontWeight: cfg.headingWeight,
+    fontStyle: cfg.headingStyle,
+    letterSpacing: cfg.headingLetterSpacing + "em",
+    textTransform: cfg.headingTransform,
+    lineHeight: cfg.headingLineHeight,
+    transition: "all 0.3s",
+  };
+  const bodySt = {
+    fontFamily: bf,
+    fontWeight: cfg.bodyWeight,
+    lineHeight: cfg.bodyLineHeight,
+  };
+
+  const zoneBtn = (zone, jumpStep, title, children, extraStyle = {}) => (
+    <div
+      onClick={() => onZoneClick(jumpStep)}
+      title={`Click to edit: ${title}`}
+      onMouseEnter={() => setHov(zone)}
+      onMouseLeave={() => setHov(null)}
+      style={{
+        cursor: "pointer",
+        position: "relative",
+        outline: hov === zone ? "2.5px solid #4f46e5" : "2px solid transparent",
+        outlineOffset: 2,
+        borderRadius: 6,
+        transition: "outline 0.2s",
+        ...extraStyle,
+      }}
+    >
+      {hov === zone && (
+        <div
+          style={{
+            position: "absolute",
+            top: -20,
+            left: 0,
+            zIndex: 20,
+            background: "#4f46e5",
+            color: "#fff",
+            fontSize: 8.5,
+            padding: "2px 8px",
+            borderRadius: 4,
+            fontFamily: "system-ui",
+            whiteSpace: "nowrap",
+          }}
+        >
+          ✏ Edit: {title}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+
+  const cardSt = {
+    borderRadius: br,
+    boxShadow: cfg.cardShadow,
+    border: cfg.cardBorderStyle,
+    background: cfg.enableGlassmorphism ? `${sur}cc` : sur,
+    backdropFilter: cfg.enableGlassmorphism
+      ? cfg.cardBackdropFilter || "blur(10px)"
+      : "none",
+    transition: "all 0.3s",
+  };
+
+  const grainVisible =
+    cfg.enableGrain || (cfg.bgType === "GRADIENT" && cfg.grainy);
+
+  return (
+    <div
+      style={{
+        ...bgCSS,
+        borderRadius: 14,
+        overflow: "hidden",
+        border: `1.5px solid ${p}22`,
+        boxShadow: "0 6px 32px rgba(0,0,0,0.12)",
+        position: "relative",
+        fontSize: 11,
+        minHeight: 360,
+      }}
+    >
+      {grainVisible && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            zIndex: 5,
+            opacity:
+              (cfg.enableGrain
+                ? cfg.globalGrainIntensity
+                : cfg.grainIntensity) / 200,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+            mixBlendMode: "overlay",
+          }}
+        />
+      )}
+
+      {/* HEADER → step 1: Colors */}
+      {zoneBtn(
+        "header",
+        1,
+        "Colors → Step 1",
+        <div
+          style={{
+            background: p,
+            padding: "16px 18px",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+          <div
+            style={{
+              ...headSt,
+              color: "#fff",
+              fontSize: cfg.headingScale * cfg.baseSize * 8 + "px",
+              marginBottom: 3,
+            }}
+          >
+            Alexandra Chen
+          </div>
+          <div
+            style={{
+              ...bodySt,
+              color: "rgba(255,255,255,0.72)",
+              fontSize: 8,
+              letterSpacing: "0.09em",
+              textTransform: "uppercase",
+            }}
+          >
+            Senior Designer · New York
+          </div>
+          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+            {["✉ hi@alex.co", "✦ +1 555 0101"].map((c, i) => (
+              <span
+                key={i}
+                style={{
+                  fontSize: 8,
+                  color: "rgba(255,255,255,0.55)",
+                  fontFamily: "system-ui",
+                }}
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+        </div>,
+        { zIndex: 2 },
+      )}
+
+      <div
+        style={{ display: "flex", ...bgCSS, position: "relative", zIndex: 2 }}
+      >
+        {/* SIDEBAR → step 4: Effects */}
+        {(cfg.layoutType === "LEFT_SIDEBAR" ||
+          cfg.layoutType === "RIGHT_SIDEBAR") &&
+          zoneBtn(
+            "sidebar",
+            4,
+            "Effects → Step 4",
             <div
               style={{
-                fontSize: 7 * scale + "px",
-                marginBottom: 1 * scale + "px",
-                opacity: 0.7,
-              }}
-            >
-              Skill {i + 1}
-            </div>
-            <div
-              style={{
-                height: 3 * scale + "px",
-                background: tx + "18",
-                borderRadius: 2,
-                overflow: "hidden",
+                ...cardSt,
+                width: 90,
+                padding: "12px 10px",
+                borderRadius: 0,
+                flexShrink: 0,
               }}
             >
               <div
                 style={{
-                  width: w + "%",
-                  height: "100%",
-                  background: a,
-                  transition: "width 0.6s ease",
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
+                  background: acc + "33",
+                  border: `2px solid ${acc}77`,
+                  marginBottom: 10,
                 }}
               />
-            </div>
-          </div>
-        ))}
-      </Section>
-    </div>
-  );
-
-  const MainBlock = () => (
-    <div style={{ flex: 1, padding: 10 * scale + "px" }}>
-      <Section label="Experience">
-        {["Senior Designer · Acme Corp", "UI Engineer · StartupXYZ"].map(
-          (job, i) => (
-            <div key={i} style={{ marginBottom: 6 * scale + "px" }}>
-              <div
-                style={{
-                  fontSize: 9 * scale + "px",
-                  fontWeight: 600,
-                  marginBottom: 1,
-                }}
-              >
-                {job.split("·")[0]}
-              </div>
-              <div
-                style={{
-                  fontSize: 7 * scale + "px",
-                  color: s,
-                  marginBottom: 2,
-                }}
-              >
-                {job.split("·")[1]}
-              </div>
-              <Line w="88%" />
-              <Line w="65%" />
-            </div>
-          ),
-        )}
-      </Section>
-      <Section label="Education">
-        <div style={{ fontSize: 9 * scale + "px", fontWeight: 600 }}>
-          B.Design — State University
-        </div>
-        <div style={{ fontSize: 7 * scale + "px", color: s }}>2015–2019</div>
-      </Section>
-    </div>
-  );
-
-  if (layout === "GALLERY")
-    return (
-      <div style={baseStyle}>
-        <Header title="Visual Artist & Photographer" />
-        <div style={{ padding: 8 * scale + "px" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1.5fr 1fr 1fr",
-              gap: 3 * scale + "px",
-              marginBottom: 6 * scale + "px",
-            }}
-          >
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  height: i === 0 ? 55 * scale + "px" : 32 * scale + "px",
-                  gridColumn: i === 0 ? "1/2" : "auto",
-                  gridRow: i === 0 ? "1/3" : "auto",
-                  background: i % 2 === 0 ? p + "33" : a + "22",
-                  borderRadius: br + "px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <span style={{ fontSize: 10 * scale + "px", opacity: 0.4 }}>
-                  ▣
-                </span>
-              </div>
-            ))}
-          </div>
-          <div
-            style={{
-              fontSize: 8 * scale + "px",
-              fontWeight: 700,
-              letterSpacing: "0.1em",
-              color: a,
-              textTransform: "uppercase",
-              marginBottom: 4 * scale + "px",
-            }}
-          >
-            Portfolio
-          </div>
-          <Line />
-          <Line w="70%" />
-        </div>
-      </div>
-    );
-
-  if (layout === "TIMELINE")
-    return (
-      <div style={baseStyle}>
-        <Header title="Executive Consultant" />
-        <div
-          style={{
-            display: "flex",
-            gap: 8 * scale + "px",
-            padding: 10 * scale + "px",
-          }}
-        >
-          <div
-            style={{
-              width: 2 * scale + "px",
-              background: a + "55",
-              borderRadius: 2,
-              flexShrink: 0,
-            }}
-          />
-          <div style={{ flex: 1 }}>
-            {[
-              "2022–Now · VP Strategy",
-              "2019–22 · Senior Mgr",
-              "2015–19 · Analyst",
-            ].map((t, i) => (
-              <div
-                key={i}
-                style={{
-                  marginBottom: 8 * scale + "px",
-                  paddingLeft: 8 * scale + "px",
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    left: -4 * scale + "px",
-                    top: 2 * scale + "px",
-                    width: 6 * scale + "px",
-                    height: 6 * scale + "px",
-                    borderRadius: "50%",
-                    background: i === 0 ? a : tx + "30",
-                  }}
-                />
-                <div
-                  style={{
-                    fontSize: 7 * scale + "px",
-                    color: a,
-                    fontWeight: 700,
-                  }}
-                >
-                  {t.split("·")[0]}
+              {["Skills", "Languages", "Contact"].map((label, i) => (
+                <div key={label} style={{ marginBottom: 8 }}>
+                  <div
+                    style={{
+                      fontSize: 7,
+                      fontWeight: 700,
+                      color: acc,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      marginBottom: 3,
+                      fontFamily: bf,
+                    }}
+                  >
+                    {label}
+                  </div>
+                  <div
+                    style={{
+                      height: 3,
+                      background: tx + "18",
+                      borderRadius: 2,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: [80, 60, 95][i] + "%",
+                        height: "100%",
+                        background: `linear-gradient(90deg,${p},${acc})`,
+                      }}
+                    />
+                  </div>
                 </div>
-                <div style={{ fontSize: 8 * scale + "px", fontWeight: 600 }}>
-                  {t.split("·")[1]}
-                </div>
-                <Line w="75%" />
-                <Line w="55%" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+              ))}
+            </div>,
+          )}
 
-  if (layout === "INFOGRAPHIC")
-    return (
-      <div style={baseStyle}>
-        <Header title="Data Scientist" />
-        <div style={{ padding: 8 * scale + "px" }}>
-          <div
-            style={{
-              display: "flex",
-              gap: 6 * scale + "px",
-              marginBottom: 8 * scale + "px",
-            }}
-          >
-            {[
-              ["5+", "Years"],
-              ["30+", "Projects"],
-              ["98%", "Rate"],
-            ].map(([n, l], i) => (
-              <div
-                key={i}
-                style={{
-                  flex: 1,
-                  textAlign: "center",
-                  background: i === 1 ? a + "15" : p + "08",
-                  borderRadius: br + "px",
-                  padding: 6 * scale + "px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 14 * scale + "px",
-                    fontWeight: 800,
-                    color: i === 1 ? a : p,
-                  }}
-                >
-                  {n}
-                </div>
-                <div style={{ fontSize: 6 * scale + "px", color: s }}>{l}</div>
-              </div>
-            ))}
-          </div>
-          <div
-            style={{
-              fontSize: 7 * scale + "px",
-              fontWeight: 700,
-              color: a,
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              marginBottom: 4 * scale + "px",
-            }}
-          >
-            Skills
-          </div>
-          {[
-            ["Python", 95],
-            ["ML/AI", 88],
-            ["SQL", 75],
-          ].map(([sk, pct]) => (
-            <div
-              key={sk}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5 * scale + "px",
-                marginBottom: 4 * scale + "px",
-              }}
-            >
+        <div style={{ flex: 1, padding: "12px 14px" }}>
+          {/* EXPERIENCE → step 5: Layout */}
+          {zoneBtn(
+            "exp",
+            5,
+            "Layout → Step 5",
+            <div style={{ ...cardSt, padding: "10px 12px", marginBottom: 8 }}>
               <div
                 style={{
-                  fontSize: 7 * scale + "px",
-                  width: 32 * scale + "px",
-                  flexShrink: 0,
-                }}
-              >
-                {sk}
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  height: 4 * scale + "px",
-                  background: tx + "15",
-                  borderRadius: 2,
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width: pct + "%",
-                    height: "100%",
-                    background: `linear-gradient(90deg,${p},${a})`,
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-
-  if (layout === "BOLD_HEADER")
-    return (
-      <div style={baseStyle}>
-        <div
-          style={{
-            background: `linear-gradient(135deg,${p},${a})`,
-            padding: 14 * scale + "px 12px",
-          }}
-        >
-          <div
-            style={{
-              width: 36 * scale + "px",
-              height: 36 * scale + "px",
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.25)",
-              border: "2px solid rgba(255,255,255,0.5)",
-              marginBottom: 6 * scale + "px",
-            }}
-          />
-          <div
-            style={{
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: 13 * scale + "px",
-            }}
-          >
-            Alexandra Chen
-          </div>
-          <div
-            style={{
-              color: "rgba(255,255,255,0.75)",
-              fontSize: 8 * scale + "px",
-              letterSpacing: "0.08em",
-            }}
-          >
-            BRAND STRATEGIST
-          </div>
-        </div>
-        <MainBlock />
-      </div>
-    );
-
-  if (layout === "MINIMALIST")
-    return (
-      <div style={baseStyle}>
-        <div style={{ padding: 12 * scale + "px" }}>
-          <div
-            style={{
-              width: 28 * scale + "px",
-              height: 2 * scale + "px",
-              background: p,
-              marginBottom: 8 * scale + "px",
-            }}
-          />
-          <div
-            style={{
-              fontSize: 15 * scale + "px",
-              fontWeight: 700,
-              color: p,
-              marginBottom: 2 * scale + "px",
-            }}
-          >
-            Alexandra Chen
-          </div>
-          <div
-            style={{
-              fontSize: 7 * scale + "px",
-              color: s,
-              letterSpacing: "0.12em",
-              marginBottom: 10 * scale + "px",
-            }}
-          >
-            SENIOR DESIGNER
-          </div>
-          <div
-            style={{
-              height: 0.5 * scale + "px",
-              background: p + "20",
-              marginBottom: 10 * scale + "px",
-            }}
-          />
-          <MainBlock />
-        </div>
-      </div>
-    );
-
-  if (layout === "MAGAZINE")
-    return (
-      <div style={baseStyle}>
-        <div
-          style={{
-            background: `linear-gradient(135deg,${p} 60%,${a})`,
-            padding: 14 * scale + "px",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 7 * scale + "px",
-              color: "rgba(255,255,255,0.6)",
-              letterSpacing: "0.2em",
-              marginBottom: 4 * scale + "px",
-            }}
-          >
-            PORTFOLIO
-          </div>
-          <div
-            style={{
-              color: "#fff",
-              fontSize: 16 * scale + "px",
-              fontWeight: 700,
-              lineHeight: 1.1,
-            }}
-          >
-            Alexandra
-          </div>
-          <div
-            style={{
-              color: "rgba(255,255,255,0.7)",
-              fontSize: 7 * scale + "px",
-              letterSpacing: "0.1em",
-            }}
-          >
-            JOURNALIST & EDITOR
-          </div>
-        </div>
-        <div style={{ display: "flex" }}>
-          <div style={{ flex: 2, padding: 8 * scale + "px" }}>
-            <MainBlock />
-          </div>
-          <SidebarBlock />
-        </div>
-      </div>
-    );
-
-  if (layout === "MODERN_GRID")
-    return (
-      <div style={baseStyle}>
-        <Header />
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 1,
-            background: p + "15",
-          }}
-        >
-          {["Experience", "Skills", "Education", "Projects"].map((sec, i) => (
-            <div key={i} style={{ background: bg, padding: 8 * scale + "px" }}>
-              <div
-                style={{
-                  fontSize: 6 * scale + "px",
-                  color: a,
+                  fontSize: 7,
                   fontWeight: 700,
+                  color: acc,
                   textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  marginBottom: 4 * scale + "px",
-                }}
-              >
-                {sec}
-              </div>
-              <Line />
-              <Line w="70%" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-
-  if (layout === "MASONRY")
-    return (
-      <div style={baseStyle}>
-        <Header />
-        <div
-          style={{
-            display: "flex",
-            gap: 5 * scale + "px",
-            padding: 8 * scale + "px",
-            alignItems: "flex-start",
-          }}
-        >
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              gap: 5 * scale + "px",
-            }}
-          >
-            <div
-              style={{
-                background: p + "0D",
-                borderRadius: br + "px",
-                padding: 8 * scale + "px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 6 * scale + "px",
-                  color: a,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  marginBottom: 4 * scale + "px",
+                  letterSpacing: "0.12em",
+                  borderBottom: `1.5px solid ${acc}44`,
+                  paddingBottom: 3,
+                  marginBottom: 8,
+                  fontFamily: bf,
                 }}
               >
                 Experience
               </div>
-              <Line />
-              <Line />
-              <Line w="60%" />
-            </div>
-            <div
-              style={{
-                background: a + "11",
-                borderRadius: br + "px",
-                padding: 6 * scale + "px",
-              }}
-            >
-              {["React", "Figma", "TS"].map((sk, i) => (
-                <Chip key={i} label={sk} />
+              {[
+                "Senior Designer · Acme Corp · 2021–Now",
+                "UI Engineer · StartupXYZ · 2019–21",
+              ].map((j, i) => (
+                <div key={i} style={{ marginBottom: 6 }}>
+                  <div
+                    style={{
+                      ...headSt,
+                      fontSize: 9,
+                      color: tx,
+                      marginBottom: 1,
+                    }}
+                  >
+                    {j.split("·")[0]}
+                  </div>
+                  <div
+                    style={{
+                      ...bodySt,
+                      fontSize: 8,
+                      color: ts,
+                      marginBottom: 3,
+                    }}
+                  >
+                    {j.split("·").slice(1).join("·")}
+                  </div>
+                  <div
+                    style={{
+                      height: 4,
+                      background: tx + "10",
+                      borderRadius: 2,
+                      width: ["88%", "72%"][i],
+                    }}
+                  />
+                </div>
               ))}
-            </div>
-          </div>
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              gap: 5 * scale + "px",
-            }}
-          >
-            <div
-              style={{
-                background: s + "11",
-                borderRadius: br + "px",
-                padding: 6 * scale + "px",
-              }}
-            >
+            </div>,
+          )}
+
+          {/* EDUCATION → step 2: Typography */}
+          {zoneBtn(
+            "typo",
+            2,
+            "Typography → Step 2",
+            <div style={{ ...cardSt, padding: "10px 12px", marginBottom: 8 }}>
               <div
                 style={{
-                  fontSize: 6 * scale + "px",
-                  color: a,
+                  fontSize: 7,
                   fontWeight: 700,
+                  color: acc,
                   textTransform: "uppercase",
-                  marginBottom: 4 * scale + "px",
+                  letterSpacing: "0.12em",
+                  borderBottom: `1.5px solid ${acc}44`,
+                  paddingBottom: 3,
+                  marginBottom: 8,
+                  fontFamily: bf,
                 }}
               >
                 Education
               </div>
-              <Line w="80%" />
-            </div>
-            <div
-              style={{
-                background: p + "0D",
-                borderRadius: br + "px",
-                padding: 8 * scale + "px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 6 * scale + "px",
-                  color: a,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  marginBottom: 4 * scale + "px",
-                }}
-              >
-                Projects
+              <div style={{ ...headSt, fontSize: 9, color: tx }}>
+                B.Design — State University
               </div>
-              <Line />
-              <Line />
-              <Line w="50%" />
-            </div>
-          </div>
+              <div style={{ ...bodySt, fontSize: 8, color: ts }}>
+                2015–2019 · GPA 3.9
+              </div>
+            </div>,
+          )}
+
+          {/* SKILLS CHIPS → step 3: Background */}
+          {zoneBtn(
+            "skills",
+            3,
+            "Background → Step 3",
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {["Figma", "React", "UX Research", "Branding"].map((sk) => (
+                <span
+                  key={sk}
+                  style={{
+                    padding: "3px 9px",
+                    borderRadius: "999px",
+                    background: cfg.tagBackground,
+                    color: cfg.tagText,
+                    fontSize: 8,
+                    border: `1px solid ${acc}44`,
+                    fontFamily: bf,
+                    transition: "all 0.3s",
+                  }}
+                >
+                  {sk}
+                </span>
+              ))}
+            </div>,
+          )}
         </div>
       </div>
-    );
 
-  // Default: SINGLE_COLUMN, TWO_COLUMN, LEFT_SIDEBAR, RIGHT_SIDEBAR
-  const isLeft = layout === "LEFT_SIDEBAR";
-  const isRight = layout === "RIGHT_SIDEBAR";
-  const isTwo = layout === "TWO_COLUMN";
-
-  return (
-    <div style={baseStyle}>
-      <Header />
-      {isLeft && (
-        <div style={{ display: "flex" }}>
-          <SidebarBlock />
-          <MainBlock />
-        </div>
-      )}
-      {isRight && (
-        <div style={{ display: "flex" }}>
-          <MainBlock />
-          <SidebarBlock />
-        </div>
-      )}
-      {isTwo && (
-        <div style={{ display: "flex" }}>
-          <MainBlock />
-          <div style={{ width: 1, background: p + "15" }} />
-          <MainBlock />
-        </div>
-      )}
-      {!isLeft && !isRight && !isTwo && <MainBlock />}
+      <div
+        style={{
+          padding: "7px 18px",
+          background: `${p}08`,
+          borderTop: `1px solid ${p}12`,
+          display: "flex",
+          alignItems: "center",
+          gap: 7,
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
+        <div
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: "#22c55e",
+            animation: "shimmer 2s infinite",
+          }}
+        />
+        <span
+          style={{
+            fontSize: 8.5,
+            color: ts,
+            fontFamily: "system-ui",
+            fontStyle: "italic",
+          }}
+        >
+          Click any section to jump to its editor
+        </span>
+      </div>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════
+   STEP PANELS
+══════════════════════════════════════════════════════════════ */
+function PanelColors({ cfg, set }) {
+  return (
+    <div className="ts-fade">
+      <SInput
+        value={cfg.name}
+        onChange={(v) => set("name", v)}
+        placeholder="Theme name e.g. Obsidian Noir…"
+        style={{
+          fontSize: 15,
+          fontWeight: 700,
+          marginBottom: 10,
+          fontFamily: "'Outfit',sans-serif",
+        }}
+      />
+      <SInput
+        value={cfg.description}
+        onChange={(v) => set("description", v)}
+        placeholder="Brief description (optional)"
+        style={{ marginBottom: 20 }}
+      />
+
+      <SLabel sub="Tap any to apply all colors instantly">
+        Quick Palettes
+      </SLabel>
+      <div
+        style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}
+      >
+        {QUICK_PALETTES.map((pal) => (
+          <button
+            key={pal.name}
+            onClick={() => {
+              set("primary", pal.pri);
+              set("secondary", pal.sec);
+              set("accent", pal.acc);
+              set("pageBackground", pal.bg);
+              set("surfaceBackground", pal.sur);
+              set("textPrimary", pal.txt);
+              set("textSecondary", pal.sec);
+              set("solidColor", pal.bg);
+            }}
+            style={{
+              background: "#fff",
+              border: "1.5px solid #e8eaf0",
+              borderRadius: 10,
+              padding: "7px 10px",
+              cursor: "pointer",
+              minWidth: 72,
+              transition: "all 0.15s",
+              fontFamily: "system-ui",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "none";
+              e.currentTarget.style.boxShadow = "none";
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                height: 14,
+                borderRadius: 4,
+                overflow: "hidden",
+                marginBottom: 4,
+              }}
+            >
+              {[pal.pri, pal.acc, pal.sec, pal.bg].map((c, i) => (
+                <div key={i} style={{ flex: 1, background: c }} />
+              ))}
+            </div>
+            <div style={{ fontSize: 9, color: "#475569" }}>{pal.name}</div>
+          </button>
+        ))}
+      </div>
+
+      <SLabel sub="Fine-tune every color — 14 total controls">
+        Full Color Control
+      </SLabel>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7,1fr)",
+          gap: 10,
+          marginBottom: 22,
+        }}
+      >
+        {[
+          { k: "primary", l: "Primary" },
+          { k: "secondary", l: "Secondary" },
+          { k: "accent", l: "Accent" },
+          { k: "pageBackground", l: "Page BG" },
+          { k: "surfaceBackground", l: "Surface" },
+          { k: "textPrimary", l: "Text" },
+          { k: "textSecondary", l: "Text 2" },
+          { k: "textMuted", l: "Muted" },
+          { k: "borderColor", l: "Border" },
+          { k: "dividerColor", l: "Divider" },
+          { k: "glowColor", l: "Glow" },
+          { k: "tagBackground", l: "Tag BG" },
+          { k: "tagText", l: "Tag Text" },
+          { k: "shadowColor", l: "Shadow" },
+        ].map(({ k, l }) => (
+          <CPicker
+            key={k}
+            val={cfg[k] || "#cccccc"}
+            onChange={(v) => set(k, v)}
+            label={l}
+          />
+        ))}
+      </div>
+
+      <SLabel sub="Sets the overall personality of this theme">
+        Visual Mood
+      </SLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+        {MOODS.map((m) => {
+          const on = cfg.mood === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={() => set("mood", m.id)}
+              style={{
+                padding: "9px 11px",
+                borderRadius: 11,
+                textAlign: "left",
+                border: on ? "2.5px solid #1a1a2e" : "1.5px solid #e8eaf0",
+                background: on ? "#1a1a2e" : "#f8f9fc",
+                color: on ? "#fff" : "#334155",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                fontFamily: "'Outfit',sans-serif",
+              }}
+            >
+              <div style={{ fontSize: 16, marginBottom: 2 }}>{m.emoji}</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700 }}>{m.label}</div>
+              <div
+                style={{ fontSize: 9, opacity: 0.6, fontFamily: "system-ui" }}
+              >
+                {m.desc}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PanelTypography({ cfg, set }) {
+  return (
+    <div className="ts-fade">
+      {/* Live preview card */}
+      <div
+        style={{
+          background: cfg.pageBackground,
+          borderRadius: 12,
+          padding: "16px 18px",
+          border: `1.5px solid ${cfg.primary}20`,
+          marginBottom: 22,
+          transition: "all 0.3s",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: cfg.headingFont,
+            fontWeight: cfg.headingWeight,
+            fontStyle: cfg.headingStyle,
+            letterSpacing: cfg.headingLetterSpacing + "em",
+            textTransform: cfg.headingTransform,
+            lineHeight: cfg.headingLineHeight,
+            color: cfg.primary,
+            fontSize: cfg.headingScale * cfg.baseSize * 10 + "px",
+            marginBottom: 4,
+            transition: "all 0.3s",
+          }}
+        >
+          Alexandra Chen
+        </div>
+        <div
+          style={{
+            fontFamily: cfg.bodyFont,
+            fontWeight: cfg.bodyWeight,
+            lineHeight: cfg.bodyLineHeight,
+            fontSize: cfg.baseSize * 11 + "px",
+            color: cfg.textSecondary,
+            transition: "all 0.3s",
+          }}
+        >
+          Senior Designer building products that delight.
+        </div>
+        <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+          {["React", "Figma", "Motion"].map((sk) => (
+            <span
+              key={sk}
+              style={{
+                padding: "2px 8px",
+                borderRadius: 99,
+                background: cfg.tagBackground,
+                color: cfg.tagText,
+                fontSize: 9,
+                fontFamily: cfg.bodyFont,
+                border: `1px solid ${cfg.accent}44`,
+                transition: "all 0.3s",
+              }}
+            >
+              {sk}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <SLabel sub="Click to see it in the preview above">Heading Font</SLabel>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 7,
+          marginBottom: 20,
+        }}
+      >
+        {FONTS.map((f) => {
+          const on = cfg.headingFont === f.val;
+          return (
+            <button
+              key={f.val}
+              onClick={() => set("headingFont", f.val)}
+              style={{
+                padding: "11px 12px",
+                borderRadius: 12,
+                cursor: "pointer",
+                textAlign: "left",
+                border: on ? "2.5px solid #1a1a2e" : "1.5px solid #e8eaf0",
+                background: on ? "#1a1a2e" : "#f8f9fc",
+                transition: "all 0.22s cubic-bezier(0.34,1.56,0.64,1)",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: f.val,
+                  fontSize: 22,
+                  fontWeight: 700,
+                  color: on ? "#fff" : "#1a1a2e",
+                  marginBottom: 2,
+                  lineHeight: 1.1,
+                }}
+              >
+                Aa
+              </div>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: on ? "#fff" : "#1a1a2e",
+                  fontFamily: "'Outfit',sans-serif",
+                }}
+              >
+                {f.label}
+              </div>
+              <div
+                style={{
+                  fontSize: 9,
+                  color: on ? "rgba(255,255,255,0.55)" : "#94a3b8",
+                  fontFamily: "system-ui",
+                }}
+              >
+                {f.cat} · {f.vibe}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <SLabel sub="For descriptions, body copy, labels">Body Font</SLabel>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3,1fr)",
+          gap: 7,
+          marginBottom: 22,
+        }}
+      >
+        {FONTS.map((f) => {
+          const on = cfg.bodyFont === f.val;
+          return (
+            <button
+              key={f.val}
+              onClick={() => set("bodyFont", f.val)}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 10,
+                cursor: "pointer",
+                textAlign: "left",
+                border: on ? "2.5px solid #4f46e5" : "1.5px solid #e8eaf0",
+                background: on ? "#4f46e5" : "#f8f9fc",
+                transition: "all 0.2s",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: f.val,
+                  fontSize: 16,
+                  fontWeight: 400,
+                  color: on ? "#fff" : "#374151",
+                  marginBottom: 2,
+                }}
+              >
+                Aa
+              </div>
+              <div
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: on ? "#fff" : "#374151",
+                  fontFamily: "'Outfit',sans-serif",
+                }}
+              >
+                {f.label}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "0 16px",
+        }}
+      >
+        <SSlider
+          label="Base Font Size"
+          val={cfg.baseSize}
+          onChange={(v) => set("baseSize", v)}
+          min={0.7}
+          max={1.5}
+          step={0.05}
+          unit="rem"
+        />
+        <SSlider
+          label="Heading Scale"
+          val={cfg.headingScale}
+          onChange={(v) => set("headingScale", v)}
+          min={1.2}
+          max={4.5}
+          step={0.1}
+          unit="×"
+        />
+        <SSlider
+          label="Heading Weight"
+          val={cfg.headingWeight}
+          onChange={(v) => set("headingWeight", v)}
+          min={300}
+          max={900}
+          step={100}
+        />
+        <SSlider
+          label="Body Weight"
+          val={cfg.bodyWeight}
+          onChange={(v) => set("bodyWeight", v)}
+          min={300}
+          max={700}
+          step={100}
+        />
+        <SSlider
+          label="Letter Spacing"
+          val={cfg.headingLetterSpacing}
+          onChange={(v) => set("headingLetterSpacing", v)}
+          min={-0.05}
+          max={0.5}
+          step={0.01}
+          unit="em"
+        />
+        <SSlider
+          label="Body Line Height"
+          val={cfg.bodyLineHeight}
+          onChange={(v) => set("bodyLineHeight", v)}
+          min={1.1}
+          max={2.5}
+          step={0.05}
+        />
+        <SSlider
+          label="Heading Line Height"
+          val={cfg.headingLineHeight}
+          onChange={(v) => set("headingLineHeight", v)}
+          min={0.9}
+          max={1.8}
+          step={0.05}
+        />
+        <SSlider
+          label="Subheading Scale"
+          val={cfg.subheadingScale}
+          onChange={(v) => set("subheadingScale", v)}
+          min={1.0}
+          max={2.0}
+          step={0.05}
+          unit="×"
+        />
+      </div>
+
+      <div
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}
+      >
+        <SSelect
+          val={cfg.headingTransform}
+          onChange={(v) => set("headingTransform", v)}
+          label="Transform"
+          options={[
+            { id: "none", label: "None" },
+            { id: "uppercase", label: "UPPER" },
+            { id: "capitalize", label: "Title" },
+            { id: "lowercase", label: "lower" },
+          ]}
+        />
+        <SSelect
+          val={cfg.headingStyle}
+          onChange={(v) => set("headingStyle", v)}
+          label="Style"
+          options={[
+            { id: "normal", label: "Normal" },
+            { id: "italic", label: "Italic" },
+          ]}
+        />
+        <SSelect
+          val={cfg.accentFont || ""}
+          onChange={(v) => set("accentFont", v)}
+          label="Accent Font"
+          options={[
+            { id: "", label: "None (auto)" },
+            ...FONTS.map((f) => ({ id: f.val, label: f.label })),
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+
+function PanelBackground({ cfg, set }) {
+  return (
+    <div className="ts-fade">
+      <SLabel>Background Type</SLabel>
+      <div
+        style={{
+          display: "flex",
+          gap: 6,
+          padding: 4,
+          background: "#f1f5f9",
+          borderRadius: 12,
+          marginBottom: 20,
+        }}
+      >
+        {[
+          { id: "SOLID", l: "○ Solid" },
+          { id: "GRADIENT", l: "◐ Gradient" },
+          { id: "IMAGE", l: "🖼 Image" },
+        ].map((t) => (
+          <button
+            key={t.id}
+            onClick={() => set("bgType", t.id)}
+            style={{
+              flex: 1,
+              padding: "8px 0",
+              borderRadius: 9,
+              border: "none",
+              fontSize: 11.5,
+              fontWeight: 700,
+              cursor: "pointer",
+              background: cfg.bgType === t.id ? "#1a1a2e" : "transparent",
+              color: cfg.bgType === t.id ? "#fff" : "#64748b",
+              transition: "all 0.2s",
+              fontFamily: "'Outfit',sans-serif",
+            }}
+          >
+            {t.l}
+          </button>
+        ))}
+      </div>
+
+      {cfg.bgType === "SOLID" && (
+        <div className="ts-slide">
+          <SLabel sub="The main page background color">Solid Color</SLabel>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              marginBottom: 16,
+            }}
+          >
+            <CPicker
+              val={cfg.solidColor}
+              onChange={(v) => {
+                set("solidColor", v);
+                set("pageBackground", v);
+              }}
+            />
+            <div>
+              <div
+                style={{
+                  fontFamily: "'Space Mono',monospace",
+                  fontSize: 13,
+                  color: "#1a1a2e",
+                  fontWeight: 700,
+                }}
+              >
+                {cfg.solidColor}
+              </div>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "#94a3b8",
+                  fontFamily: "system-ui",
+                }}
+              >
+                Page background
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cfg.bgType === "GRADIENT" && (
+        <div className="ts-slide">
+          <SLabel>Gradient Style</SLabel>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            {GRADIENT_TYPES.map((g) => {
+              const on = cfg.gradientType === g.id;
+              return (
+                <button
+                  key={g.id}
+                  onClick={() => set("gradientType", g.id)}
+                  style={{
+                    flex: 1,
+                    padding: "10px 6px",
+                    borderRadius: 11,
+                    cursor: "pointer",
+                    border: on ? "2.5px solid #1a1a2e" : "1.5px solid #e8eaf0",
+                    background: on ? "#1a1a2e" : "#f8f9fc",
+                    color: on ? "#fff" : "#334155",
+                    fontFamily: "'Outfit',sans-serif",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  <div style={{ fontSize: 20, marginBottom: 3 }}>{g.emoji}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700 }}>{g.label}</div>
+                </button>
+              );
+            })}
+          </div>
+          {cfg.gradientType === "LINEAR" && (
+            <SSlider
+              label="Angle"
+              val={cfg.gradientAngle}
+              onChange={(v) => set("gradientAngle", v)}
+              min={0}
+              max={360}
+              step={5}
+              unit="°"
+            />
+          )}
+
+          <SLabel sub="Click + to add more stops">Color Stops</SLabel>
+          {cfg.gradientStops.map((stop, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 10,
+              }}
+            >
+              <CPicker
+                val={stop.color}
+                onChange={(c) => {
+                  const s = [...cfg.gradientStops];
+                  s[i] = { ...s[i], color: c };
+                  set("gradientStops", s);
+                }}
+              />
+              <div style={{ flex: 1 }}>
+                <SSlider
+                  label={`Stop ${i + 1}`}
+                  val={stop.position}
+                  onChange={(pos) => {
+                    const s = [...cfg.gradientStops];
+                    s[i] = { ...s[i], position: pos };
+                    set("gradientStops", s);
+                  }}
+                  min={0}
+                  max={100}
+                  step={1}
+                  unit="%"
+                />
+              </div>
+              {cfg.gradientStops.length > 2 && (
+                <button
+                  onClick={() =>
+                    set(
+                      "gradientStops",
+                      cfg.gradientStops.filter((_, j) => j !== i),
+                    )
+                  }
+                  style={{
+                    background: "#fee2e2",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "4px 10px",
+                    cursor: "pointer",
+                    color: "#dc2626",
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={() =>
+              set("gradientStops", [
+                ...cfg.gradientStops,
+                { color: "#888", position: 50 },
+              ])
+            }
+            style={{
+              width: "100%",
+              padding: "8px",
+              borderRadius: 10,
+              border: "1.5px dashed #d1d5db",
+              background: "transparent",
+              color: "#64748b",
+              fontSize: 12,
+              cursor: "pointer",
+              marginBottom: 16,
+              fontFamily: "'Outfit',sans-serif",
+            }}
+          >
+            + Add Color Stop
+          </button>
+
+          {/* Live gradient preview */}
+          <div
+            style={{
+              height: 32,
+              borderRadius: 10,
+              marginBottom: 16,
+              border: "1.5px solid #e8eaf0",
+              background:
+                cfg.gradientType === "RADIAL"
+                  ? `radial-gradient(circle,${cfg.gradientStops.map((s) => `${s.color} ${s.position}%`).join(",")})`
+                  : `linear-gradient(${cfg.gradientAngle}deg,${cfg.gradientStops.map((s) => `${s.color} ${s.position}%`).join(",")})`,
+            }}
+          />
+
+          <SToggle
+            val={cfg.grainy}
+            onChange={(v) => set("grainy", v)}
+            label="◌ Film Grain on Gradient"
+            sub="Organic noise over the gradient"
+          />
+          {cfg.grainy && (
+            <SSlider
+              label="Grain Intensity"
+              val={cfg.grainIntensity}
+              onChange={(v) => set("grainIntensity", v)}
+              min={5}
+              max={100}
+              unit="%"
+            />
+          )}
+        </div>
+      )}
+
+      {cfg.bgType === "IMAGE" && (
+        <div className="ts-slide">
+          <SLabel sub="Paste a direct image URL">Image URL</SLabel>
+          <SInput
+            value={cfg.imageUrl}
+            onChange={(v) => set("imageUrl", v)}
+            placeholder="https://res.cloudinary.com/…"
+            style={{ marginBottom: 12 }}
+          />
+          <SSlider
+            label="Image Opacity"
+            val={cfg.imageOpacity}
+            onChange={(v) => set("imageOpacity", v)}
+            min={10}
+            max={100}
+            unit="%"
+          />
+          <SSelect
+            label="Blend Mode"
+            val={cfg.imageBlendMode}
+            onChange={(v) => set("imageBlendMode", v)}
+            options={[
+              "normal",
+              "multiply",
+              "overlay",
+              "screen",
+              "soft-light",
+              "color-burn",
+              "luminosity",
+            ].map((id) => ({ id, label: id }))}
+          />
+        </div>
+      )}
+
+      <div style={{ height: 1, background: "#f0f2f8", margin: "20px 0" }} />
+      <SLabel sub="Applied on top of any background type">
+        Texture Overlay
+      </SLabel>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(5,1fr)",
+          gap: 7,
+          marginBottom: 16,
+        }}
+      >
+        {TEXTURE_TYPES.map((t) => {
+          const on = cfg.textureType === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => set("textureType", t.id)}
+              style={{
+                padding: "9px 5px",
+                borderRadius: 10,
+                cursor: "pointer",
+                textAlign: "center",
+                border: on ? "2.5px solid #4f46e5" : "1.5px solid #e8eaf0",
+                background: on ? "#4f46e5" : "#f8f9fc",
+                color: on ? "#fff" : "#334155",
+                transition: "all 0.18s",
+              }}
+            >
+              <div style={{ fontSize: 18, marginBottom: 3 }}>{t.emoji}</div>
+              <div
+                style={{
+                  fontSize: 8.5,
+                  fontWeight: 600,
+                  fontFamily: "'Outfit',sans-serif",
+                }}
+              >
+                {t.label}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      {cfg.textureType !== "NONE" && (
+        <>
+          <SSlider
+            label="Texture Opacity"
+            val={cfg.textureOpacity}
+            onChange={(v) => set("textureOpacity", v)}
+            min={5}
+            max={85}
+            unit="%"
+          />
+          <SSelect
+            label="Blend Mode"
+            val={cfg.textureBlendMode}
+            onChange={(v) => set("textureBlendMode", v)}
+            options={[
+              "multiply",
+              "overlay",
+              "soft-light",
+              "screen",
+              "normal",
+            ].map((id) => ({ id, label: id }))}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+function PanelEffects({ cfg, set }) {
+  const radii = [
+    { v: "0px", l: "Sharp" },
+    { v: "4px", l: "Tiny" },
+    { v: "8px", l: "Soft" },
+    { v: "14px", l: "Round" },
+    { v: "22px", l: "Pill" },
+  ];
+  const shadows = [
+    { v: "none", l: "None" },
+    { v: "0 1px 4px rgba(0,0,0,0.07)", l: "Subtle" },
+    { v: "0 4px 16px rgba(0,0,0,0.10)", l: "Medium" },
+    { v: "0 8px 32px rgba(0,0,0,0.18)", l: "Deep" },
+    { v: "0 16px 48px rgba(0,0,0,0.28)", l: "Dramatic" },
+  ];
+  return (
+    <div className="ts-fade">
+      <SLabel sub="Applied to all cards, chips, sections">
+        Card Roundness
+      </SLabel>
+      <div style={{ display: "flex", gap: 7, marginBottom: 20 }}>
+        {radii.map((r) => {
+          const on = cfg.cardBorderRadius === r.v;
+          return (
+            <button
+              key={r.v}
+              onClick={() => set("cardBorderRadius", r.v)}
+              style={{
+                flex: 1,
+                padding: "10px 4px",
+                borderRadius: 11,
+                cursor: "pointer",
+                textAlign: "center",
+                border: on ? "2.5px solid #1a1a2e" : "1.5px solid #e8eaf0",
+                background: on ? "#1a1a2e" : "#f8f9fc",
+                color: on ? "#fff" : "#334155",
+                transition: "all 0.2s",
+                fontFamily: "'Outfit',sans-serif",
+              }}
+            >
+              <div
+                style={{
+                  width: 28,
+                  height: 20,
+                  background: on ? "rgba(255,255,255,0.25)" : "#dde1ea",
+                  borderRadius: r.v,
+                  margin: "0 auto 5px",
+                }}
+              />
+              <div style={{ fontSize: 9, fontWeight: 700 }}>{r.l}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      <SLabel sub="Drop shadow depth for cards">Card Shadow</SLabel>
+      <div style={{ display: "flex", gap: 7, marginBottom: 20 }}>
+        {shadows.map((sh) => {
+          const on = cfg.cardShadow === sh.v;
+          return (
+            <button
+              key={sh.l}
+              onClick={() => set("cardShadow", sh.v)}
+              style={{
+                flex: 1,
+                padding: "10px 4px",
+                borderRadius: 11,
+                cursor: "pointer",
+                textAlign: "center",
+                border: on ? "2.5px solid #1a1a2e" : "1.5px solid #e8eaf0",
+                background: on ? "#1a1a2e" : "#f8f9fc",
+                color: on ? "#fff" : "#334155",
+                transition: "all 0.2s",
+                fontFamily: "'Outfit',sans-serif",
+              }}
+            >
+              <div
+                style={{
+                  width: 30,
+                  height: 20,
+                  background: on ? "rgba(255,255,255,0.25)" : "#dde1ea",
+                  borderRadius: cfg.cardBorderRadius,
+                  boxShadow: sh.v,
+                  margin: "0 auto 5px",
+                }}
+              />
+              <div style={{ fontSize: 9, fontWeight: 700 }}>{sh.l}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      <SSelect
+        label="Card Border Style"
+        val={cfg.cardBorderStyle}
+        onChange={(v) => set("cardBorderStyle", v)}
+        options={[
+          { id: "none", label: "None" },
+          { id: "1px solid rgba(0,0,0,0.06)", label: "1px Subtle" },
+          { id: "1px solid rgba(0,0,0,0.12)", label: "1px Visible" },
+          { id: "2px solid rgba(0,0,0,0.08)", label: "2px Medium" },
+          { id: "1.5px dashed rgba(0,0,0,0.12)", label: "Dashed" },
+        ]}
+      />
+      <SSelect
+        label="Section Dividers"
+        val={cfg.sectionDividerStyle}
+        onChange={(v) => set("sectionDividerStyle", v)}
+        options={[
+          { id: "none", label: "None" },
+          { id: "line", label: "Line" },
+          { id: "wave", label: "Wave" },
+          { id: "diagonal", label: "Diagonal" },
+          { id: "zigzag", label: "Zigzag" },
+        ]}
+      />
+      <SSelect
+        label="Transition Speed"
+        val={cfg.transitionSpeed}
+        onChange={(v) => set("transitionSpeed", v)}
+        options={[
+          { id: "fast", label: "Fast (150ms)" },
+          { id: "medium", label: "Medium (300ms)" },
+          { id: "slow", label: "Slow (600ms)" },
+        ]}
+      />
+
+      <div style={{ height: 1, background: "#f0f2f8", margin: "14px 0" }} />
+      <SLabel sub="Toggle special visual effects">Effect Layers</SLabel>
+      <SToggle
+        val={cfg.enableScrollReveal}
+        onChange={(v) => set("enableScrollReveal", v)}
+        label="✦ Scroll Reveal Animations"
+        sub="Elements fade in as user scrolls"
+      />
+      <SToggle
+        val={cfg.enableHoverLift}
+        onChange={(v) => set("enableHoverLift", v)}
+        label="⬆ Hover Lift on Cards"
+        sub="Cards lift on mouse hover"
+      />
+      <SToggle
+        val={cfg.enableParallax}
+        onChange={(v) => set("enableParallax", v)}
+        label="🎬 Parallax Scrolling"
+        sub="Background moves slower than content"
+      />
+      <SToggle
+        val={cfg.enableGlassmorphism}
+        onChange={(v) => set("enableGlassmorphism", v)}
+        label="🔮 Glassmorphism"
+        sub="Frosted glass on cards"
+        accent="#0c4a6e"
+      />
+      {cfg.enableGlassmorphism && (
+        <SInput
+          value={cfg.cardBackdropFilter}
+          onChange={(v) => set("cardBackdropFilter", v)}
+          placeholder="blur(12px) saturate(140%)"
+          style={{ marginBottom: 12 }}
+        />
+      )}
+      <SToggle
+        val={cfg.enableNeumorphism}
+        onChange={(v) => set("enableNeumorphism", v)}
+        label="◉ Neumorphism"
+        sub="Soft embossed card surfaces"
+        accent="#374151"
+      />
+      <SToggle
+        val={cfg.enableGrain}
+        onChange={(v) => set("enableGrain", v)}
+        label="◌ Global Film Grain"
+        sub="Organic noise texture over everything"
+        accent="#1a1a2e"
+      />
+      {cfg.enableGrain && (
+        <SSlider
+          label="Grain Intensity"
+          val={cfg.globalGrainIntensity}
+          onChange={(v) => set("globalGrainIntensity", v)}
+          min={5}
+          max={80}
+          unit="%"
+        />
+      )}
+    </div>
+  );
+}
+
+function PanelLayout({ cfg, set }) {
+  return (
+    <div className="ts-fade">
+      <SLabel sub="How the resume page is structured">Layout Style</SLabel>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4,1fr)",
+          gap: 9,
+          marginBottom: 22,
+        }}
+      >
+        {LAYOUT_TYPES.map((l) => {
+          const on = cfg.layoutType === l.id;
+          return (
+            <button
+              key={l.id}
+              onClick={() => set("layoutType", l.id)}
+              style={{
+                padding: "11px 7px",
+                borderRadius: 13,
+                cursor: "pointer",
+                textAlign: "center",
+                border: on ? "2.5px solid #1a1a2e" : "1.5px solid #e8eaf0",
+                background: on ? "#1a1a2e" : "#f8f9fc",
+                color: on ? "#fff" : "#334155",
+                transition: "all 0.22s cubic-bezier(0.34,1.56,0.64,1)",
+                fontFamily: "'Outfit',sans-serif",
+              }}
+            >
+              <div style={{ fontSize: 20, marginBottom: 4 }}>{l.emoji}</div>
+              <div style={{ fontSize: 9.5, fontWeight: 700 }}>{l.label}</div>
+              <div
+                style={{
+                  fontSize: 8,
+                  opacity: 0.6,
+                  fontFamily: "system-ui",
+                  marginTop: 2,
+                }}
+              >
+                {l.desc}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <SLabel sub="Sections available in this template">
+        Supported Sections
+      </SLabel>
+      <div
+        style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}
+      >
+        {SECTIONS_ALL.map((sk) => {
+          const on = cfg.supportedSections.includes(sk);
+          return (
+            <button
+              key={sk}
+              onClick={() =>
+                set(
+                  "supportedSections",
+                  on
+                    ? cfg.supportedSections.filter((s) => s !== sk)
+                    : [...cfg.supportedSections, sk],
+                )
+              }
+              style={{
+                padding: "5px 11px",
+                borderRadius: 20,
+                cursor: "pointer",
+                fontSize: 10.5,
+                border: on ? "2px solid #1a1a2e" : "1.5px solid #e8eaf0",
+                background: on ? "#1a1a2e" : "#f8f9fc",
+                color: on ? "#fff" : "#475569",
+                fontFamily: "'Outfit',sans-serif",
+                transition: "all 0.15s",
+              }}
+            >
+              {sk.replace(/_/g, " ")}
+            </button>
+          );
+        })}
+      </div>
+
+      <SLabel sub="Users cannot remove these sections">
+        Required Sections 🔒
+      </SLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {cfg.supportedSections.map((sk) => {
+          const req = cfg.requiredSections.includes(sk);
+          return (
+            <button
+              key={sk}
+              onClick={() =>
+                set(
+                  "requiredSections",
+                  req
+                    ? cfg.requiredSections.filter((s) => s !== sk)
+                    : [...cfg.requiredSections, sk],
+                )
+              }
+              style={{
+                padding: "5px 11px",
+                borderRadius: 20,
+                cursor: "pointer",
+                fontSize: 10.5,
+                border: req ? "2px solid #4f46e5" : "1.5px solid #e8eaf0",
+                background: req ? "#4f46e5" : "#f8f9fc",
+                color: req ? "#fff" : "#94a3b8",
+                fontFamily: "'Outfit',sans-serif",
+                transition: "all 0.15s",
+              }}
+            >
+              {sk.replace(/_/g, " ")}
+              {req ? " 🔒" : ""}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PanelAudience({ cfg, set }) {
+  return (
+    <div className="ts-fade">
+      <SLabel
+        sub={`Select all that apply — ${cfg.targetAudiences.length} selected`}
+      >
+        Target Audiences *
+      </SLabel>
+      <div
+        style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 22 }}
+      >
+        {AUDIENCES.map((a) => {
+          const on = cfg.targetAudiences.includes(a);
+          return (
+            <button
+              key={a}
+              onClick={() =>
+                set(
+                  "targetAudiences",
+                  on
+                    ? cfg.targetAudiences.filter((x) => x !== a)
+                    : [...cfg.targetAudiences, a],
+                )
+              }
+              style={{
+                padding: "6px 13px",
+                borderRadius: 20,
+                cursor: "pointer",
+                fontSize: 11,
+                border: on ? "2px solid #1a1a2e" : "1.5px solid #e8eaf0",
+                background: on ? "#1a1a2e" : "#f8f9fc",
+                color: on ? "#fff" : "#475569",
+                fontFamily: "'Outfit',sans-serif",
+                transition: "all 0.2s cubic-bezier(0.34,1.56,0.64,1)",
+                transform: on ? "scale(1.06)" : "scale(1)",
+              }}
+            >
+              {a.replace(/_/g, " ")}
+            </button>
+          );
+        })}
+      </div>
+
+      <SLabel sub="Minimum subscription plan required">Plan Access</SLabel>
+      <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
+        {PLAN_LEVELS.map((pl) => {
+          const on = cfg.requiredPlan === pl.id;
+          return (
+            <button
+              key={pl.id}
+              onClick={() => set("requiredPlan", pl.id)}
+              style={{
+                flex: 1,
+                padding: "14px 8px",
+                borderRadius: 14,
+                cursor: "pointer",
+                textAlign: "center",
+                border: on ? "2.5px solid #1a1a2e" : "1.5px solid #e8eaf0",
+                background: on ? "#1a1a2e" : "#f8f9fc",
+                color: on ? "#fff" : "#334155",
+                fontFamily: "'Outfit',sans-serif",
+                transition: "all 0.22s cubic-bezier(0.34,1.56,0.64,1)",
+                transform: on ? "scale(1.05)" : "scale(1)",
+              }}
+            >
+              <div style={{ fontSize: 24, marginBottom: 5 }}>{pl.emoji}</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700 }}>{pl.label}</div>
+              <div
+                style={{ fontSize: 9, opacity: 0.65, fontFamily: "system-ui" }}
+              >
+                {pl.desc}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <SLabel>Tagline (shown in template gallery)</SLabel>
+      <SInput
+        value={cfg.tagline}
+        onChange={(v) => set("tagline", v)}
+        placeholder="e.g. Built for creatives who stand out"
+        style={{ marginBottom: 14 }}
+      />
+      <SToggle
+        val={cfg.featured}
+        onChange={(v) => set("featured", v)}
+        label="⭐ Mark as Featured Template"
+        sub="Shows prominently in template explorer"
+        accent="#d97706"
+      />
+    </div>
+  );
+}
+
+function PanelPublish({ cfg, saving, saveMsg, uploading, onPublish }) {
+  const LT =
+    LAYOUT_TYPES.find((l) => l.id === cfg.layoutType)?.label || cfg.layoutType;
+  const HF = cfg.headingFont.split(",")[0].replace(/'/g, "").slice(0, 18);
+  const BF = cfg.bodyFont.split(",")[0].replace(/'/g, "").slice(0, 18);
+  const valid = cfg.name.trim() && cfg.targetAudiences.length > 0;
+
+  return (
+    <div className="ts-fade">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 8,
+          marginBottom: 20,
+        }}
+      >
+        {[
+          ["✦", "Name", cfg.name || "(unnamed)"],
+          ["🌊", "Mood", cfg.mood?.replace(/_/g, " ") || "—"],
+          ["📐", "Layout", LT],
+          ["💎", "Plan", cfg.requiredPlan],
+          ["🎯", "Audiences", cfg.targetAudiences.length + " selected"],
+          ["Aa", "Heading Font", HF],
+          ["Aa", "Body Font", BF],
+          ["📋", "Sections", cfg.supportedSections.length + " supported"],
+          ["⭐", "Featured", cfg.featured ? "Yes" : "No"],
+          [
+            "✨",
+            "Effects",
+            [
+              cfg.enableGlassmorphism && "Glass",
+              cfg.enableGrain && "Grain",
+              cfg.enableHoverLift && "Hover",
+            ]
+              .filter(Boolean)
+              .join(", ") || "Standard",
+          ],
+        ].map(([ic, k, v]) => (
+          <div
+            key={k}
+            style={{
+              background: "#f8f9fc",
+              borderRadius: 11,
+              padding: "10px 13px",
+              border: "1px solid #e8eaf0",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 9,
+                color: "#94a3b8",
+                fontWeight: 600,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                fontFamily: "system-ui",
+                marginBottom: 3,
+              }}
+            >
+              {ic} {k}
+            </div>
+            <div
+              style={{
+                fontSize: 12.5,
+                fontWeight: 700,
+                color: "#1a1a2e",
+                fontFamily: "'Outfit',sans-serif",
+              }}
+            >
+              {v}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          borderRadius: 10,
+          overflow: "hidden",
+          height: 26,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+          marginBottom: 20,
+        }}
+      >
+        {[
+          cfg.primary,
+          cfg.accent,
+          cfg.secondary,
+          cfg.surfaceBackground,
+          cfg.pageBackground,
+        ].map((c, i) => (
+          <div
+            key={i}
+            style={{ flex: 1, background: c, transition: "background 0.3s" }}
+          />
+        ))}
+      </div>
+
+      <div
+        style={{
+          background: "#f0f7ff",
+          borderRadius: 14,
+          padding: "14px 16px",
+          marginBottom: 20,
+          border: "1.5px solid #bfdbfe",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            color: "#1d4ed8",
+            letterSpacing: "0.07em",
+            textTransform: "uppercase",
+            marginBottom: 12,
+            fontFamily: "system-ui",
+          }}
+        >
+          3 things will be created atomically:
+        </div>
+        {[
+          ["🎨", "Theme", "colorPalette + background + typography + effects"],
+          ["📐", "Layout", LT + " structure + section zones"],
+          [
+            "📋",
+            "Template",
+            cfg.requiredPlan +
+              " plan · " +
+              cfg.targetAudiences.length +
+              " audience(s)",
+          ],
+        ].map(([ic, title, desc]) => (
+          <div
+            key={title}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 11,
+              marginBottom: 9,
+            }}
+          >
+            <span style={{ fontSize: 20 }}>{ic}</span>
+            <div>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#1e3a5f",
+                  fontFamily: "'Outfit',sans-serif",
+                }}
+              >
+                {title}
+              </div>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "#3b82f6",
+                  fontFamily: "system-ui",
+                }}
+              >
+                {desc}
+              </div>
+            </div>
+          </div>
+        ))}
+        <div
+          style={{
+            marginTop: 10,
+            padding: "8px 12px",
+            borderRadius: 9,
+            background: "#dbeafe",
+            fontSize: 10,
+            color: "#1d4ed8",
+            fontFamily: "system-ui",
+            display: "flex",
+            gap: 7,
+            alignItems: "center",
+          }}
+        >
+          <span>📸</span>
+          <span>
+            Preview screenshot via html2canvas → uploaded to Cloudinary
+            automatically
+          </span>
+        </div>
+      </div>
+
+      {!cfg.name.trim() && (
+        <div
+          style={{
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: "#fef3c7",
+            border: "1.5px solid #fde68a",
+            fontSize: 11,
+            color: "#92400e",
+            marginBottom: 10,
+            fontFamily: "system-ui",
+          }}
+        >
+          ⚠ Please enter a theme name (Step 1)
+        </div>
+      )}
+      {cfg.targetAudiences.length === 0 && (
+        <div
+          style={{
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: "#fef3c7",
+            border: "1.5px solid #fde68a",
+            fontSize: 11,
+            color: "#92400e",
+            marginBottom: 10,
+            fontFamily: "system-ui",
+          }}
+        >
+          ⚠ Select at least one audience (Step 6)
+        </div>
+      )}
+
+      {saving && (
+        <div
+          style={{
+            background: "#1a1a2e",
+            color: "#fff",
+            borderRadius: 11,
+            padding: "11px 16px",
+            marginBottom: 14,
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
+            fontFamily: "'Outfit',sans-serif",
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          <span
+            style={{
+              animation: "spin 1s linear infinite",
+              display: "inline-block",
+            }}
+          >
+            ⏳
+          </span>
+          {saveMsg || "Publishing…"}
+        </div>
+      )}
+
+      <button
+        onClick={onPublish}
+        disabled={saving || !valid}
+        style={{
+          width: "100%",
+          padding: "15px",
+          borderRadius: 14,
+          border: "none",
+          background: saving ? "#4f46e5" : "#1a1a2e",
+          color: "#fff",
+          fontSize: 15,
+          fontWeight: 800,
+          cursor: saving || !valid ? "not-allowed" : "pointer",
+          fontFamily: "'Outfit',sans-serif",
+          opacity: saving || !valid ? 0.7 : 1,
+          transition: "all 0.2s",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {uploading
+          ? "📸 Capturing Preview…"
+          : saving
+            ? saveMsg || "Publishing…"
+            : "🚀 Publish Theme + Layout + Template"}
+      </button>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THEME CARD
+══════════════════════════════════════════════════════════════ */
+function ThemeCard({ theme, onEdit, onDeactivate }) {
+  const [hov, setHov] = useState(false);
+  const c = theme.colorPalette || {},
+    ty = theme.typography || {},
+    bg = theme.background || {};
+  let cardBg = c.pageBackground || "#f5f5f5";
+  if (bg.type === "GRADIENT" && bg.gradient?.stops?.length) {
+    const stops = bg.gradient.stops
+      .map((s) => `${s.color} ${s.position}`)
+      .join(",");
+    cardBg = `linear-gradient(${bg.gradient.angle || "135deg"},${stops})`;
+  }
+  return (
+    <div
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={() => onEdit(theme)}
+      style={{
+        background: "#fff",
+        borderRadius: 18,
+        overflow: "hidden",
+        border: "1.5px solid #eaedf2",
+        transition: "all 0.32s cubic-bezier(0.16,1,0.3,1)",
+        cursor: "pointer",
+        transform: hov ? "translateY(-6px)" : "translateY(0)",
+        boxShadow: hov
+          ? "0 18px 44px rgba(0,0,0,0.13)"
+          : "0 2px 10px rgba(0,0,0,0.06)",
+      }}
+    >
+      <div style={{ height: 6, display: "flex" }}>
+        {[c.primary, c.accent, c.secondary, c.pageBackground]
+          .filter(Boolean)
+          .map((col, i) => (
+            <div key={i} style={{ flex: 1, background: col }} />
+          ))}
+      </div>
+      {theme.previewImageUrl ? (
+        <img
+          src={theme.previewImageUrl}
+          alt={theme.name}
+          style={{
+            width: "100%",
+            height: 110,
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            height: 96,
+            background: cardBg,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 14,
+          }}
+        >
+          <div style={{ textAlign: "center" }}>
+            <div
+              style={{
+                fontFamily: ty.headingFont || "Georgia,serif",
+                fontSize: 15,
+                fontWeight: ty.headingWeight || 700,
+                color: c.primary || "#1a1a1a",
+                marginBottom: 3,
+              }}
+            >
+              Alex Chen
+            </div>
+            <div
+              style={{
+                fontFamily: ty.bodyFont || "system-ui",
+                fontSize: 9,
+                color: c.textSecondary || "#64748b",
+              }}
+            >
+              Senior Designer
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 4,
+                justifyContent: "center",
+                marginTop: 6,
+              }}
+            >
+              {[c.primary, c.accent, c.secondary]
+                .filter(Boolean)
+                .map((col, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: "50%",
+                      background: col,
+                    }}
+                  />
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={{ padding: "11px 14px 14px" }}>
+        <div
+          style={{
+            fontSize: 13.5,
+            fontWeight: 800,
+            color: "#1a1a2e",
+            marginBottom: 2,
+            fontFamily: "'Outfit',sans-serif",
+          }}
+        >
+          {theme.name}
+        </div>
+        <div
+          style={{
+            fontSize: 10,
+            color: "#64748b",
+            marginBottom: 2,
+            fontFamily: "system-ui",
+          }}
+        >
+          {theme.mood?.replace(/_/g, " ") || "—"}
+        </div>
+        <div
+          style={{
+            fontSize: 9,
+            color: "#cbd5e1",
+            marginBottom: 10,
+            fontFamily: "system-ui",
+          }}
+        >
+          {ty.headingFont?.split(",")[0]?.replace(/'/g, "") || "—"}
+        </div>
+        {theme.featured && (
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              color: "#d97706",
+              background: "#fef3c7",
+              borderRadius: 8,
+              padding: "2px 8px",
+              marginBottom: 9,
+              display: "inline-block",
+            }}
+          >
+            ⭐ Featured
+          </span>
+        )}
+        <div style={{ display: "flex", gap: 7 }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(theme);
+            }}
+            style={{
+              background: "#f1f5f9",
+              color: "#374151",
+              border: "1px solid #e2e8f0",
+              borderRadius: 8,
+              padding: "5px 13px",
+              fontSize: 10.5,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "'Outfit',sans-serif",
+            }}
+          >
+            ✏ Edit
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeactivate(theme.id);
+            }}
+            style={{
+              background: "#fff1f2",
+              color: "#ef4444",
+              border: "1px solid #fecaca",
+              borderRadius: 8,
+              padding: "5px 10px",
+              fontSize: 10.5,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "'Outfit',sans-serif",
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
    MAIN PAGE
-═══════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════ */
 export default function AdminThemeStudioPage() {
-  const [cfg, setCfg] = useState(DEFAULT_CFG);
+  const [cfg, setCfg] = useState({ ...DEF });
   const [step, setStep] = useState(1);
+  const [doneSteps, setDoneSteps] = useState(new Set());
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [themes, setThemes] = useState([]);
-  const [loadingList, setLoadingList] = useState(true);
+  const [loadingThemes, setLoadingThemes] = useState(true);
   const [editId, setEditId] = useState(null);
   const [toast, setToast] = useState({ msg: "", ok: true });
-  const [hoveredColor, setHoveredColor] = useState(null);
-  const [activeTab, setActiveTab] = useState("colors");
-  const [animKey, setAnimKey] = useState(0);
+  const previewRef = useRef(null);
 
-  const set = useCallback((k, v) => {
-    setCfg((p) => ({ ...p, [k]: v }));
-    setAnimKey((n) => n + 1);
-  }, []);
+  const set = useCallback((k, v) => setCfg((p) => ({ ...p, [k]: v })), []);
+  const markDone = (n) => setDoneSteps((p) => new Set([...p, n]));
+  const goNext = () => {
+    markDone(step);
+    setStep((s) => Math.min(s + 1, 7));
+  };
+  const goPrev = () => setStep((s) => Math.max(s - 1, 1));
+
+  const notify = (msg, ok = true) => {
+    setToast({ msg, ok });
+    setTimeout(() => setToast({ msg: "", ok: true }), 4200);
+  };
 
   const loadThemes = () => {
-    setLoadingList(true);
-    themeAPI
+    setLoadingThemes(true);
+    adminThemeAPI
       .getAll()
-      .then((r) => setThemes(r.data))
+      .then((r) => setThemes(r.data || []))
       .catch(() => {})
-      .finally(() => setLoadingList(false));
+      .finally(() => setLoadingThemes(false));
   };
   useEffect(() => {
     loadThemes();
   }, []);
 
-  const notify = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast({ msg: "", ok: true }), 4000);
+  const capturePreview = async () => {
+    if (!previewRef.current) return null;
+    try {
+      setUploading(true);
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2.5,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      });
+      const blob = await new Promise((res) =>
+        canvas.toBlob(res, "image/png", 0.93),
+      );
+      const fd = new FormData();
+      fd.append("file", blob, "theme-preview.png");
+      const res = await fetch("/api/admin/upload/preview?type=theme", {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+      return data.secureUrl || null;
+    } catch (e) {
+      console.warn("Preview capture failed:", e);
+      return null;
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const randomName = () => {
-    const n =
-      NAME_SUGGESTIONS[Math.floor(Math.random() * NAME_SUGGESTIONS.length)];
-    set("name", n);
-  };
-
-  const toggleTag = (tag) => {
-    set(
-      "professionTags",
-      cfg.professionTags.includes(tag)
-        ? cfg.professionTags.filter((t) => t !== tag)
-        : [...cfg.professionTags, tag],
-    );
-  };
-
-  const handleSave = async () => {
+  const handlePublish = async () => {
     if (!cfg.name.trim()) {
-      notify("Please enter a theme name! 😊", false);
+      notify("Please enter a theme name (Step 1)", false);
+      return;
+    }
+    if (cfg.targetAudiences.length === 0) {
+      notify("Select at least one audience (Step 6)", false);
       return;
     }
     setSaving(true);
-    setSaved(false);
     try {
-      setSaveMsg("Creating theme…");
-      const themePayload = {
-        name: cfg.name,
-        themeConfig: {
-          primaryColor: cfg.primaryColor,
-          secondaryColor: cfg.secondaryColor,
-          accentColor: cfg.accentColor,
-          backgroundColor: cfg.backgroundColor,
-          textColor: cfg.textColor,
-          fontFamily: cfg.fontFamily,
-          borderRadius: cfg.borderRadius + "px",
-        },
-      };
-      let themeId;
+      setSaveMsg("📸 Capturing preview screenshot…");
+      const previewUrl = await capturePreview();
+      const payload = buildPayload(cfg, previewUrl);
+
       if (editId) {
-        await themeAPI.update(editId, themePayload);
-        notify("Theme updated successfully! ✓");
-        setSaved(true);
+        setSaveMsg("Updating theme…");
+        await adminThemeAPI.update(editId, payload);
+        notify("✓ Theme updated successfully!");
         loadThemes();
+        setSaving(false);
+        setSaveMsg("");
         return;
-      } else {
-        const r = await themeAPI.create(themePayload);
-        themeId = r.data.id;
       }
-      setSaveMsg("Creating layout…");
-      const layoutRes = await layoutAPI.create({
+
+      setSaveMsg("🎨 Creating theme…");
+      const themeRes = await adminThemeAPI.create(payload);
+      const themeId = themeRes.data.id;
+
+      setSaveMsg("📐 Creating layout…");
+      const layoutRes = await adminLayoutAPI.create({
         name: cfg.name,
         layoutType: cfg.layoutType,
-        layoutConfigJson: JSON.stringify({
-          columns: 2,
-          sidebarWidth: "260px",
-          contentPadding: "24px",
-          headerHeight: "80px",
-          sectionSpacing: "32px",
-          maxWidth: "1200px",
-        }),
+        targetAudiences: cfg.targetAudiences,
+        compatibleMoods: [cfg.mood],
+        requiredPlan: cfg.requiredPlan,
+        previewImageUrl: previewUrl,
+        structureConfig: {
+          columnCount:
+            cfg.layoutType.includes("COLUMN") || cfg.layoutType === "MINIMALIST"
+              ? 1
+              : 2,
+          hasHeroSection:
+            cfg.layoutType === "BOLD_HEADER" || cfg.layoutType === "MAGAZINE",
+          sidebarPosition:
+            cfg.layoutType === "LEFT_SIDEBAR"
+              ? "LEFT"
+              : cfg.layoutType === "RIGHT_SIDEBAR"
+                ? "RIGHT"
+                : null,
+          zones: [
+            {
+              zoneId: "header",
+              label: "Header",
+              allowedSections: ["PERSONAL_INFO"],
+              defaultWidth: "100%",
+              optional: false,
+              displayOrder: 0,
+            },
+            {
+              zoneId: "main",
+              label: "Main",
+              allowedSections: cfg.supportedSections,
+              defaultWidth: "100%",
+              optional: false,
+              displayOrder: 1,
+            },
+          ],
+        },
       });
-      setSaveMsg("Creating template…");
-      await templateAPI.create({
+
+      setSaveMsg("📋 Publishing template…");
+      await adminTemplateAPI.create({
         name: cfg.name,
-        description: cfg.description || `${cfg.name} template`,
-        previewImageUrl: null,
-        planLevel: cfg.planLevel,
+        description:
+          cfg.description || `${cfg.name} — a beautiful resume template`,
+        tagline:
+          cfg.tagline ||
+          `Perfect for ${cfg.targetAudiences
+            .slice(0, 2)
+            .map((a) => a.replace(/_/g, " ").toLowerCase())
+            .join(" & ")}`,
+        previewImageUrl: previewUrl,
+        planLevel: cfg.requiredPlan,
         layoutId: layoutRes.data.id,
         defaultThemeId: themeId,
-        professionTags: cfg.professionTags,
-        supportedSections: [
-          "PERSONAL_INFO",
-          "SUMMARY",
-          "EXPERIENCE",
-          "EDUCATION",
-          "SKILLS",
-          "PROJECTS",
-          "CERTIFICATIONS",
-        ],
-        featured: false,
+        targetAudiences: cfg.targetAudiences,
+        primaryMood: cfg.mood,
+        supportedSections: cfg.supportedSections,
+        requiredSections: cfg.requiredSections,
+        featured: cfg.featured,
+        isNew: true,
       });
-      notify("🎉 Theme + Layout + Template published!");
-      setSaved(true);
+
+      notify("🎉 Theme + Layout + Template published successfully!");
+      markDone(7);
       loadThemes();
       setTimeout(() => {
-        setSaved(false);
+        setCfg({ ...DEF });
         setStep(1);
-        setCfg(DEFAULT_CFG);
         setEditId(null);
-      }, 2500);
+        setDoneSteps(new Set());
+      }, 2800);
     } catch (err) {
-      notify(err?.response?.data?.message || "Save failed.", false);
+      notify(
+        err?.response?.data?.message || "Publish failed — check console.",
+        false,
+      );
+      console.error(err);
     } finally {
       setSaving(false);
       setSaveMsg("");
@@ -1173,26 +3117,84 @@ export default function AdminThemeStudioPage() {
   };
 
   const startEdit = (t) => {
-    const c = t.themeConfig || {};
+    const c = t.colorPalette || {},
+      bg = t.background || {},
+      ty = t.typography || {},
+      ef = t.effects || {};
     setCfg({
-      ...DEFAULT_CFG,
+      ...DEF,
       name: t.name,
-      primaryColor: c.primaryColor || "#1C1C1C",
-      secondaryColor: c.secondaryColor || "#8A8578",
-      accentColor: c.accentColor || "#4A6FA5",
-      backgroundColor: c.backgroundColor || "#F5F3EE",
-      textColor: c.textColor || "#1C1C1C",
-      fontFamily: c.fontFamily || DEFAULT_CFG.fontFamily,
-      borderRadius: parseInt(c.borderRadius || "8") + "",
+      description: t.description || "",
+      tagline: t.tagline || "",
+      featured: t.featured || false,
+      mood: t.mood || "CLEAN_MINIMAL",
+      requiredPlan: t.requiredPlan || "FREE",
+      targetAudiences: t.targetAudiences || [],
+      primary: c.primary || DEF.primary,
+      secondary: c.secondary || DEF.secondary,
+      accent: c.accent || DEF.accent,
+      surfaceBackground: c.surfaceBackground || DEF.surfaceBackground,
+      pageBackground: c.pageBackground || DEF.pageBackground,
+      textPrimary: c.textPrimary || DEF.textPrimary,
+      textSecondary: c.textSecondary || DEF.textSecondary,
+      textMuted: c.textMuted || DEF.textMuted,
+      borderColor: c.borderColor || DEF.borderColor,
+      dividerColor: c.dividerColor || DEF.dividerColor,
+      glowColor: c.glowColor || DEF.glowColor,
+      tagBackground: c.tagBackground || DEF.tagBackground,
+      tagText: c.tagText || DEF.tagText,
+      bgType: bg.type || "SOLID",
+      solidColor: bg.solidColor || DEF.solidColor,
+      gradientType: bg.gradient?.gradientType || "LINEAR",
+      gradientAngle: parseInt(bg.gradient?.angle || "135"),
+      gradientStops:
+        bg.gradient?.stops?.map((s) => ({
+          color: s.color,
+          position: parseInt(s.position),
+        })) || DEF.gradientStops,
+      grainy: bg.gradient?.grainy || false,
+      grainIntensity: bg.gradient?.grainIntensity || 30,
+      textureType: bg.textureOverlay?.textureType || "NONE",
+      textureOpacity: bg.textureOverlay?.opacity || 40,
+      imageUrl: bg.imageUrl || "",
+      imageBlendMode: bg.imageBlendMode || "normal",
+      imageOpacity: bg.imageOpacity || 100,
+      headingFont: ty.headingFont || DEF.headingFont,
+      bodyFont: ty.bodyFont || DEF.bodyFont,
+      accentFont: ty.accentFont || "",
+      baseSize: ty.baseSize || 1,
+      headingScale: ty.headingScale || 2.5,
+      subheadingScale: ty.subheadingScale || 1.5,
+      headingWeight: ty.headingWeight || 700,
+      bodyWeight: ty.bodyWeight || 400,
+      headingTransform: ty.headingTransform || "none",
+      headingStyle: ty.headingStyle || "normal",
+      headingLetterSpacing: ty.headingLetterSpacing || 0,
+      bodyLineHeight: ty.bodyLineHeight || 1.65,
+      headingLineHeight: ty.headingLineHeight || 1.1,
+      cardBorderRadius: ef.cardBorderRadius || "8px",
+      cardShadow: ef.cardShadow || DEF.cardShadow,
+      cardBorderStyle: ef.cardBorderStyle || DEF.cardBorderStyle,
+      cardBackdropFilter: ef.cardBackdropFilter || "",
+      enableScrollReveal: ef.enableScrollReveal ?? true,
+      enableHoverLift: ef.enableHoverLift ?? true,
+      enableParallax: ef.enableParallax || false,
+      transitionSpeed: ef.transitionSpeed || "medium",
+      enableGlassmorphism: ef.enableGlassmorphism || false,
+      enableNeumorphism: ef.enableNeumorphism || false,
+      enableGrain: ef.enableGrain || false,
+      globalGrainIntensity: ef.globalGrainIntensity || 25,
+      sectionDividerStyle: ef.sectionDividerStyle || "none",
     });
     setEditId(t.id);
     setStep(1);
+    setDoneSteps(new Set());
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDeactivate = (id) => {
     if (!window.confirm("Deactivate this theme?")) return;
-    themeAPI
+    adminThemeAPI
       .deactivate(id)
       .then(() => {
         notify("Deactivated.");
@@ -1201,1123 +3203,443 @@ export default function AdminThemeStudioPage() {
       .catch(() => notify("Failed.", false));
   };
 
-  const COLORS_DATA = [
-    {
-      key: "backgroundColor",
-      label: "Background",
-      icon: "🎨",
-      hint: "The paper color of your resume",
-    },
-    {
-      key: "primaryColor",
-      label: "Primary",
-      icon: "⬛",
-      hint: "Headers, sidebar, name section",
-    },
-    {
-      key: "secondaryColor",
-      label: "Secondary",
-      icon: "🔘",
-      hint: "Job titles, dates, subtle text",
-    },
-    {
-      key: "accentColor",
-      label: "Accent",
-      icon: "✨",
-      hint: "Section titles, skill bars, chips",
-    },
-    {
-      key: "textColor",
-      label: "Body Text",
-      icon: "📝",
-      hint: "All paragraph and description text",
-    },
-  ];
-
+  /* ── RENDER ── */
   return (
     <>
-      <style>{FONT_INJECT}</style>
+      <style>{GLOBAL_CSS}</style>
+
+      {toast.msg && (
+        <div
+          className="ts-pop"
+          style={{
+            position: "fixed",
+            bottom: 28,
+            right: 28,
+            zIndex: 99999,
+            background: toast.ok ? "#1a1a2e" : "#dc2626",
+            color: "#fff",
+            padding: "13px 22px",
+            borderRadius: 14,
+            fontSize: 13,
+            fontWeight: 700,
+            boxShadow: "0 10px 36px rgba(0,0,0,0.28)",
+            fontFamily: "'Outfit',sans-serif",
+            maxWidth: 360,
+          }}
+        >
+          {toast.msg}
+        </div>
+      )}
+
       <AdminDashboardLayout
-        title={editId ? `✏️ Editing: ${cfg.name}` : "🎨 Theme Studio"}
+        title={
+          editId ? `✏️ Editing: ${cfg.name || "Theme"}` : "🎨 Theme Studio"
+        }
         subtitle={
           editId
-            ? "Update colors and style"
-            : "Build beautiful resume themes with live preview"
+            ? "Making changes — live preview updates in real-time"
+            : "Design themes, layouts & templates — publish in one click"
         }
         rightAction={
           editId && (
             <button
               onClick={() => {
-                setCfg(DEFAULT_CFG);
+                setCfg({ ...DEF });
                 setEditId(null);
                 setStep(1);
+                setDoneSteps(new Set());
               }}
-              style={S.btnGhost}
+              style={{
+                background: "#fef2f2",
+                color: "#ef4444",
+                border: "1.5px solid #fecaca",
+                borderRadius: 10,
+                padding: "9px 18px",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: "'Outfit',sans-serif",
+              }}
             >
-              ✕ Cancel
+              ✕ Discard
             </button>
           )
         }
       >
-        {/* ── Toast ── */}
-        {toast.msg && (
+        {/* STUDIO WORKSPACE */}
+        <div
+          style={{
+            display: "flex",
+            gap: 18,
+            alignItems: "flex-start",
+            marginBottom: 64,
+          }}
+        >
+          {/* ── STEP NAV ── */}
           <div
-            className="ts-pop"
-            style={{ ...S.toast, background: toast.ok ? "#1a1a1a" : "#dc2626" }}
+            style={{
+              flexShrink: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              position: "sticky",
+              top: 80,
+              width: 158,
+            }}
           >
-            {toast.msg}
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════════════
-            MAIN STUDIO LAYOUT: LEFT EDITOR + RIGHT LIVE PREVIEW
-        ════════════════════════════════════════════════════════ */}
-        <div style={S.studioLayout}>
-          {/* ═══ LEFT: EDITOR PANEL ═══ */}
-          <div style={S.editorCol}>
-            {/* Step Pills */}
-            {!editId && (
-              <div style={S.stepPills}>
-                {["Style", "Layout", "Publish"].map((lbl, i) => {
-                  const n = i + 1;
-                  const active = step === n;
-                  const done = step > n;
-                  return (
-                    <button
-                      key={n}
-                      onClick={() => done && setStep(n)}
-                      style={{
-                        ...S.stepPill,
-                        background: active
-                          ? "#1a1a1a"
-                          : done
-                            ? "#22c55e"
-                            : "#f1f5f9",
-                        color: active || done ? "#fff" : "#94a3b8",
-                        cursor: done ? "pointer" : "default",
-                        transform: active ? "scale(1.05)" : "scale(1)",
-                      }}
-                    >
-                      {done ? "✓ " : `${n}. `}
-                      {lbl}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* ─── STEP 1: STYLE ─── */}
-            {step === 1 && (
-              <div className="ts-fade" style={S.editorCard}>
-                {/* Theme Name */}
-                <div style={S.sectionHead}>
-                  <span style={S.sectionIcon}>✦</span>
-                  <span style={S.sectionTitle}>Name your theme</span>
-                </div>
-                <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-                  <input
-                    value={cfg.name}
-                    onChange={(e) => set("name", e.target.value)}
-                    placeholder="e.g. Midnight Gallery…"
-                    style={{ ...S.input, flex: 1 }}
-                  />
-                  <button
-                    onClick={randomName}
-                    title="Suggest a magical name ✨"
-                    style={{ ...S.iconBtn, fontSize: 18 }}
-                  >
-                    ✨
-                  </button>
-                </div>
-                <input
-                  value={cfg.description}
-                  onChange={(e) => set("description", e.target.value)}
-                  placeholder="Brief description (optional)…"
+            {STEP_CFG.map((st) => {
+              const isActive = step === st.id,
+                isDone = doneSteps.has(st.id);
+              return (
+                <button
+                  key={st.id}
+                  onClick={() => setStep(st.id)}
                   style={{
-                    ...S.input,
-                    marginBottom: 24,
-                    color: "#64748b",
-                    fontSize: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "11px 14px",
+                    borderRadius: 13,
+                    border: "none",
+                    background: isActive
+                      ? "#1a1a2e"
+                      : isDone
+                        ? "#f0fdf4"
+                        : "#f8f9fc",
+                    color: isActive ? "#fff" : isDone ? "#15803d" : "#475569",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+                    transform: isActive ? "scale(1.04)" : "scale(1)",
+                    boxShadow: isActive
+                      ? "0 4px 18px rgba(26,26,46,0.25)"
+                      : "0 1px 4px rgba(0,0,0,0.05)",
+                    fontFamily: "'Outfit',sans-serif",
                   }}
-                />
-
-                {/* Sub-tabs */}
-                <div style={S.subTabs}>
-                  {[
-                    ["colors", "🎨 Colors"],
-                    ["font", "✦ Font"],
-                    ["shape", "◯ Shape"],
-                  ].map(([id, lbl]) => (
-                    <button
-                      key={id}
-                      onClick={() => setActiveTab(id)}
-                      style={{
-                        ...S.subTab,
-                        background:
-                          activeTab === id ? "#1a1a1a" : "transparent",
-                        color: activeTab === id ? "#fff" : "#64748b",
-                      }}
+                >
+                  <span style={{ fontSize: isActive ? 18 : 16, flexShrink: 0 }}>
+                    {isDone && !isActive ? "✅" : st.icon}
+                  </span>
+                  <div>
+                    <div
+                      style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.1 }}
                     >
-                      {lbl}
-                    </button>
-                  ))}
-                </div>
-
-                {/* ── COLORS TAB ── */}
-                {activeTab === "colors" && (
-                  <div className="ts-slide">
-                    {/* Quick Palettes */}
-                    <div style={S.sectionHead}>
-                      <span style={S.sectionTitle}>Quick Palettes</span>
-                      <span style={{ fontSize: 10, color: "#94a3b8" }}>
-                        Click to apply instantly
-                      </span>
+                      {st.label}
                     </div>
                     <div
                       style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 8,
-                        marginBottom: 20,
+                        fontSize: 9.5,
+                        opacity: 0.6,
+                        fontFamily: "system-ui",
+                        lineHeight: 1.2,
                       }}
                     >
-                      {QUICK_PALETTES.map((pal) => (
-                        <button
-                          key={pal.name}
-                          onClick={() =>
-                            setCfg((p) => ({
-                              ...p,
-                              backgroundColor: pal.bg,
-                              primaryColor: pal.pri,
-                              secondaryColor: pal.sec,
-                              accentColor: pal.acc,
-                              textColor: pal.txt,
-                            }))
-                          }
-                          style={S.palBtn}
-                          title={pal.name}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              height: 16,
-                              borderRadius: 4,
-                              overflow: "hidden",
-                              marginBottom: 3,
-                            }}
-                          >
-                            {[pal.pri, pal.acc, pal.sec, pal.bg].map((c, i) => (
-                              <div key={i} style={{ flex: 1, background: c }} />
-                            ))}
-                          </div>
-                          <div style={{ fontSize: 9, color: "#64748b" }}>
-                            {pal.emoji} {pal.name}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Individual color pickers */}
-                    <div style={S.sectionHead}>
-                      <span style={S.sectionTitle}>Fine-tune Colors</span>
-                    </div>
-                    <div style={S.colorList}>
-                      {COLORS_DATA.map(({ key, label, icon, hint }) => {
-                        const isHovered = hoveredColor === key;
-                        return (
-                          <div
-                            key={key}
-                            onMouseEnter={() => setHoveredColor(key)}
-                            onMouseLeave={() => setHoveredColor(null)}
-                            style={{
-                              ...S.colorRow,
-                              background: isHovered ? "#f8fafc" : "#fff",
-                              transform: isHovered
-                                ? "translateX(4px)"
-                                : "translateX(0)",
-                            }}
-                          >
-                            {/* Color swatch + hidden input */}
-                            <div
-                              style={{ position: "relative", flexShrink: 0 }}
-                            >
-                              <div
-                                style={{
-                                  width: 44,
-                                  height: 44,
-                                  borderRadius: 10,
-                                  background: cfg[key],
-                                  border: "2px solid rgba(0,0,0,0.08)",
-                                  boxShadow: isHovered
-                                    ? `0 0 0 3px ${cfg[key]}44, 0 4px 12px ${cfg[key]}33`
-                                    : "none",
-                                  transition: "all 0.25s",
-                                  cursor: "pointer",
-                                }}
-                              />
-                              <input
-                                type="color"
-                                value={cfg[key]}
-                                onChange={(e) => set(key, e.target.value)}
-                                style={{
-                                  position: "absolute",
-                                  inset: 0,
-                                  opacity: 0,
-                                  cursor: "pointer",
-                                  width: "100%",
-                                  height: "100%",
-                                }}
-                              />
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  color: "#1a1a1a",
-                                  marginBottom: 1,
-                                }}
-                              >
-                                {icon} {label}
-                              </div>
-                              <div style={{ fontSize: 10, color: "#94a3b8" }}>
-                                {hint}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: 10,
-                                  fontFamily: "monospace",
-                                  color: "#475569",
-                                  marginTop: 1,
-                                }}
-                              >
-                                {cfg[key]}
-                              </div>
-                            </div>
-                            {/* Mini indicator of what it affects */}
-                            {isHovered && (
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  right: 12,
-                                  top: "50%",
-                                  transform: "translateY(-50%)",
-                                  fontSize: 9,
-                                  color: "#6366f1",
-                                  fontWeight: 600,
-                                  animation: "shimmer 1s infinite",
-                                }}
-                              >
-                                ← see preview
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {st.short}
                     </div>
                   </div>
-                )}
+                </button>
+              );
+            })}
+          </div>
 
-                {/* ── FONT TAB ── */}
-                {activeTab === "font" && (
-                  <div className="ts-slide">
-                    <div style={S.sectionHead}>
-                      <span style={S.sectionTitle}>Pick Your Font</span>
-                      <span style={{ fontSize: 10, color: "#94a3b8" }}>
-                        See it live in preview →
-                      </span>
-                    </div>
-                    <div style={S.fontGrid}>
-                      {FONTS.map((f) => {
-                        const active = cfg.fontFamily === f.val;
-                        return (
-                          <button
-                            key={f.val}
-                            onClick={() => set("fontFamily", f.val)}
-                            style={{
-                              ...S.fontCard,
-                              border: active
-                                ? "2.5px solid #1a1a1a"
-                                : "2px solid #e2e8f0",
-                              background: active ? "#1a1a1a" : "#fafafa",
-                              color: active ? "#fff" : "#1a1a1a",
-                              transform: active ? "scale(1.03)" : "scale(1)",
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontFamily: f.val,
-                                fontSize: 22,
-                                fontWeight: 700,
-                                marginBottom: 3,
-                                color: active ? "#fff" : "#1a1a1a",
-                              }}
-                            >
-                              {f.preview.length > 10
-                                ? f.preview.slice(0, 8) + "…"
-                                : f.preview}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 9,
-                                fontWeight: 700,
-                                marginBottom: 1,
-                                color: active
-                                  ? "rgba(255,255,255,0.9)"
-                                  : "#334155",
-                              }}
-                            >
-                              {f.label}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 8,
-                                color: active
-                                  ? "rgba(255,255,255,0.6)"
-                                  : "#94a3b8",
-                                fontFamily: "system-ui",
-                              }}
-                            >
-                              {f.cat}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 8,
-                                marginTop: 3,
-                                color: active
-                                  ? "rgba(255,255,255,0.7)"
-                                  : "#cbd5e1",
-                                fontFamily: "system-ui",
-                              }}
-                            >
-                              {f.vibe}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
+          {/* ── EDITOR PANEL ── */}
+          <div style={{ flex: "0 0 460px", minWidth: 0 }}>
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 20,
+                border: "1.5px solid #eaedf2",
+                padding: "26px 28px",
+                boxShadow: "0 4px 32px rgba(0,0,0,0.06)",
+                minHeight: 520,
+              }}
+            >
+              {/* Step header */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  paddingBottom: 18,
+                  marginBottom: 22,
+                  borderBottom: "2px solid #f0f2f8",
+                }}
+              >
+                <div
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 12,
+                    background: "#1a1a2e",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 20,
+                    flexShrink: 0,
+                  }}
+                >
+                  {STEP_CFG[step - 1]?.icon}
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 17,
+                      fontWeight: 800,
+                      color: "#1a1a2e",
+                      fontFamily: "'Outfit',sans-serif",
+                      letterSpacing: "-0.02em",
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {STEP_CFG[step - 1]?.label}
                   </div>
-                )}
-
-                {/* ── SHAPE TAB ── */}
-                {activeTab === "shape" && (
-                  <div className="ts-slide">
-                    <div style={S.sectionHead}>
-                      <span style={S.sectionTitle}>Corner Roundness</span>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "#1a1a1a",
-                        }}
-                      >
-                        {cfg.borderRadius}px
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={24}
-                      step={2}
-                      value={cfg.borderRadius}
-                      onChange={(e) => set("borderRadius", e.target.value)}
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "#94a3b8",
+                      fontFamily: "system-ui",
+                    }}
+                  >
+                    Step {step} of 7 · {STEP_CFG[step - 1]?.short}
+                  </div>
+                </div>
+                {/* Progress dots */}
+                <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
+                  {STEP_CFG.map((st) => (
+                    <div
+                      key={st.id}
                       style={{
-                        width: "100%",
-                        accentColor: "#1a1a1a",
-                        height: 4,
-                        marginBottom: 12,
+                        width: st.id === step ? 22 : 7,
+                        height: 7,
+                        borderRadius: 99,
+                        transition: "width 0.3s,background 0.3s",
+                        background:
+                          st.id === step
+                            ? "#1a1a2e"
+                            : doneSteps.has(st.id)
+                              ? "#22c55e"
+                              : "#e2e8f0",
                       }}
                     />
-                    <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-                      {[0, 4, 8, 12, 16, 20, 24].map((v) => (
-                        <div
-                          key={v}
-                          onClick={() => set("borderRadius", v + "")}
-                          style={{
-                            flex: 1,
-                            aspectRatio: "1",
-                            background:
-                              parseInt(cfg.borderRadius) === v
-                                ? "#1a1a1a"
-                                : "#e2e8f0",
-                            borderRadius: v + "px",
-                            cursor: "pointer",
-                            transition: "all 0.2s",
-                            border:
-                              parseInt(cfg.borderRadius) === v
-                                ? "2px solid #1a1a1a"
-                                : "2px solid transparent",
-                          }}
-                        />
-                      ))}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: 10,
-                        color: "#94a3b8",
-                        marginBottom: 20,
-                      }}
-                    >
-                      <span>0 — Sharp</span>
-                      <span>12 — Rounded</span>
-                      <span>24 — Pill</span>
-                    </div>
-                    {/* Spacing & size guide */}
-                    <div style={S.sectionHead}>
-                      <span style={S.sectionTitle}>Visual Guide</span>
-                    </div>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      {["Headers", "Chips", "Cards", "Buttons"].map(
-                        (label, i) => (
-                          <div key={label} style={{ textAlign: "center" }}>
-                            <div
-                              style={{
-                                width: 56,
-                                height: 24 + i * 8,
-                                background:
-                                  cfg.primaryColor + ["", "22", "11", "33"][i],
-                                border: `2px solid ${cfg.accentColor}44`,
-                                borderRadius: [
-                                  cfg.borderRadius + "px",
-                                  "20px",
-                                  "12px",
-                                  cfg.borderRadius + "px",
-                                ][i],
-                                marginBottom: 4,
-                                transition: "all 0.3s",
-                              }}
-                            />
-                            <div style={{ fontSize: 9, color: "#94a3b8" }}>
-                              {label}
-                            </div>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              </div>
 
+              {/* Panel content */}
+              <div
+                className="studio-scroll"
+                style={{
+                  maxHeight: "58vh",
+                  overflowY: "auto",
+                  paddingRight: 2,
+                }}
+              >
+                {step === 1 && <PanelColors cfg={cfg} set={set} />}
+                {step === 2 && <PanelTypography cfg={cfg} set={set} />}
+                {step === 3 && <PanelBackground cfg={cfg} set={set} />}
+                {step === 4 && <PanelEffects cfg={cfg} set={set} />}
+                {step === 5 && <PanelLayout cfg={cfg} set={set} />}
+                {step === 6 && <PanelAudience cfg={cfg} set={set} />}
+                {step === 7 && (
+                  <PanelPublish
+                    cfg={cfg}
+                    saving={saving}
+                    saveMsg={saveMsg}
+                    uploading={uploading}
+                    onPublish={handlePublish}
+                  />
+                )}
+              </div>
+
+              {/* Nav buttons */}
+              {step < 7 && (
                 <div
                   style={{
                     display: "flex",
                     gap: 10,
                     marginTop: 24,
-                    paddingTop: 20,
-                    borderTop: "1px solid #f0f0f0",
+                    paddingTop: 18,
+                    borderTop: "1.5px solid #f0f2f8",
                   }}
                 >
-                  {editId ? (
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      style={{ ...S.btnPrimary, opacity: saving ? 0.6 : 1 }}
-                    >
-                      {saving ? "⏳ " + saveMsg : "💾 Update Theme"}
-                    </button>
-                  ) : (
-                    <button onClick={() => setStep(2)} style={S.btnPrimary}>
-                      Next: Choose Layout →
-                    </button>
-                  )}
+                  {step > 1 && <BtnGhost onClick={goPrev}>← Back</BtnGhost>}
+                  <BtnPrimary onClick={goNext} style={{ flex: 1 }}>
+                    {step === 6
+                      ? "Review & Publish →"
+                      : `Next: ${STEP_CFG[step]?.label} →`}
+                  </BtnPrimary>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          </div>
 
-            {/* ─── STEP 2: LAYOUT ─── */}
-            {step === 2 && !editId && (
-              <div className="ts-fade" style={S.editorCard}>
-                <div style={S.sectionHead}>
-                  <span style={S.sectionIcon}>📐</span>
-                  <span style={S.sectionTitle}>Choose Layout Style</span>
-                </div>
-
-                {/* Layout cards — live colored with YOUR palette */}
-                <div style={S.layoutGrid}>
-                  {LAYOUTS.map((l) => {
-                    const active = cfg.layoutType === l.id;
-                    return (
-                      <button
-                        key={l.id}
-                        onClick={() => set("layoutType", l.id)}
-                        style={{
-                          ...S.layoutCard,
-                          border: active
-                            ? "2.5px solid #1a1a1a"
-                            : "2px solid #e2e8f0",
-                          boxShadow: active
-                            ? "0 0 0 4px rgba(26,26,26,0.1)"
-                            : "0 1px 4px rgba(0,0,0,0.06)",
-                          background: active ? "#fafafa" : "#fff",
-                          transform: active ? "translateY(-2px)" : "none",
-                        }}
-                      >
-                        {/* Live mini preview of THIS layout with current colors */}
-                        <div
-                          style={{
-                            borderRadius: 8,
-                            overflow: "hidden",
-                            marginBottom: 8,
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                            pointerEvents: "none",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: 160,
-                              height: 100,
-                              overflow: "hidden",
-                              position: "relative",
-                            }}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                transformOrigin: "top left",
-                                transform: "scale(0.5)",
-                                width: 320,
-                                height: 200,
-                              }}
-                            >
-                              <MiniPreview
-                                cfg={cfg}
-                                scale={0.5}
-                                layout={l.id}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "left" }}>
-                          <div
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              marginBottom: 2,
-                              color: "#1a1a1a",
-                            }}
-                          >
-                            {l.emoji} {l.label}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 9,
-                              color: "#94a3b8",
-                              marginBottom: 5,
-                              lineHeight: 1.4,
-                            }}
-                          >
-                            {l.desc}
-                          </div>
-                          {active && (
-                            <>
-                              <div
-                                style={{
-                                  fontSize: 9,
-                                  color: "#22c55e",
-                                  fontWeight: 700,
-                                  marginBottom: 4,
-                                }}
-                              >
-                                ✓ Selected
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: 9,
-                                  color: "#6366f1",
-                                  fontStyle: "italic",
-                                  marginBottom: 4,
-                                }}
-                              >
-                                💡 {l.best}
-                              </div>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexWrap: "wrap",
-                                  gap: 3,
-                                }}
-                              >
-                                {l.tags.map((t) => (
-                                  <span
-                                    key={t}
-                                    style={{
-                                      fontSize: 8,
-                                      background: "#1a1a1a",
-                                      color: "#fff",
-                                      borderRadius: 10,
-                                      padding: "1px 6px",
-                                    }}
-                                  >
-                                    {t}
-                                  </span>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div style={{ ...S.sectionHead, marginTop: 24 }}>
-                  <span style={S.sectionIcon}>🎯</span>
-                  <span style={S.sectionTitle}>Who is this for?</span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 6,
-                    marginBottom: 20,
-                  }}
-                >
-                  {PROFESSIONS.map((t) => {
-                    const on = cfg.professionTags.includes(t.id);
-                    return (
-                      <button
-                        key={t.id}
-                        onClick={() => toggleTag(t.id)}
-                        style={{
-                          ...S.tagBtn,
-                          background: on ? "#1a1a1a" : "#f8fafc",
-                          color: on ? "#fff" : "#475569",
-                          border: on
-                            ? "2px solid #1a1a1a"
-                            : "2px solid #e2e8f0",
-                          transform: on ? "scale(1.04)" : "scale(1)",
-                        }}
-                      >
-                        {t.emoji} {t.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div style={S.sectionHead}>
-                  <span style={S.sectionIcon}>💎</span>
-                  <span style={S.sectionTitle}>Access Plan</span>
-                </div>
-                <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
-                  {[
-                    { id: "FREE", emoji: "🆓", desc: "All users" },
-                    { id: "PRO", emoji: "⭐", desc: "Pro subscribers" },
-                    { id: "ENTERPRISE", emoji: "🏢", desc: "Enterprise only" },
-                  ].map((p) => {
-                    const on = cfg.planLevel === p.id;
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => set("planLevel", p.id)}
-                        style={{
-                          ...S.planCard,
-                          background: on ? "#1a1a1a" : "#fafafa",
-                          color: on ? "#fff" : "#334155",
-                          border: on
-                            ? "2px solid #1a1a1a"
-                            : "2px solid #e2e8f0",
-                          transform: on ? "scale(1.04)" : "scale(1)",
-                        }}
-                      >
-                        <div style={{ fontSize: 24, marginBottom: 4 }}>
-                          {p.emoji}
-                        </div>
-                        <div style={{ fontSize: 12, fontWeight: 700 }}>
-                          {p.id}
-                        </div>
-                        <div style={{ fontSize: 10, opacity: 0.7 }}>
-                          {p.desc}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => setStep(1)} style={S.btnGhost}>
-                    ← Back
-                  </button>
-                  <button onClick={() => setStep(3)} style={S.btnPrimary}>
-                    Review & Publish →
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ─── STEP 3: PUBLISH ─── */}
-            {step === 3 && !editId && (
-              <div className="ts-fade" style={S.editorCard}>
-                <div style={S.sectionHead}>
-                  <span style={S.sectionIcon}>🚀</span>
-                  <span style={S.sectionTitle}>Ready to Publish?</span>
-                </div>
-
-                {/* Summary cards */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 8,
-                    marginBottom: 20,
-                  }}
-                >
-                  {[
-                    ["Theme Name", cfg.name || "(unnamed)", "✦"],
-                    [
-                      "Layout",
-                      LAYOUTS.find((l) => l.id === cfg.layoutType)?.label ||
-                        cfg.layoutType,
-                      "📐",
-                    ],
-                    [
-                      "Font",
-                      cfg.fontFamily
-                        .split(",")[0]
-                        .replace(/'/g, "")
-                        .slice(0, 20),
-                      "✦",
-                    ],
-                    ["Corners", cfg.borderRadius + "px", "◯"],
-                    ["Plan", cfg.planLevel, "💎"],
-                    [
-                      "Professions",
-                      cfg.professionTags.length + " selected",
-                      "🎯",
-                    ],
-                  ].map(([k, v, icon]) => (
+          {/* ── LIVE PREVIEW ── */}
+          <div style={{ flex: 1, minWidth: 270, position: "sticky", top: 80 }}>
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 20,
+                border: "1.5px solid #eaedf2",
+                boxShadow: "0 4px 32px rgba(0,0,0,0.07)",
+                overflow: "hidden",
+              }}
+            >
+              {/* Chrome bar */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "11px 16px",
+                  background: "#fafbff",
+                  borderBottom: "1.5px solid #f0f2f8",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {["#ef4444", "#f59e0b", "#22c55e"].map((c) => (
                     <div
-                      key={k}
+                      key={c}
                       style={{
-                        background: "#fafafa",
-                        borderRadius: 10,
-                        padding: "10px 14px",
-                        border: "1px solid #e2e8f0",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: "#94a3b8",
-                          marginBottom: 3,
-                          fontWeight: 600,
-                          letterSpacing: "0.06em",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        {icon} {k}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: "#1a1a1a",
-                        }}
-                      >
-                        {v}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Color swatches */}
-                <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-                  {[
-                    cfg.primaryColor,
-                    cfg.accentColor,
-                    cfg.secondaryColor,
-                    cfg.backgroundColor,
-                    cfg.textColor,
-                  ].map((c, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        flex: 1,
-                        height: 32,
-                        borderRadius: 8,
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
                         background: c,
-                        border: "1.5px solid rgba(0,0,0,0.08)",
-                        boxShadow: "0 2px 8px " + c + "44",
                       }}
                     />
                   ))}
-                </div>
-
-                {/* What gets created */}
-                <div
-                  style={{
-                    background: "#f8fafc",
-                    borderRadius: 12,
-                    padding: "14px 16px",
-                    marginBottom: 20,
-                    border: "1px solid #e2e8f0",
-                  }}
-                >
-                  <div
+                  <span
                     style={{
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: 700,
                       color: "#94a3b8",
-                      letterSpacing: "0.08em",
+                      marginLeft: 7,
                       textTransform: "uppercase",
-                      marginBottom: 10,
+                      letterSpacing: "0.08em",
+                      fontFamily: "'Outfit',sans-serif",
                     }}
                   >
-                    3 things will be created:
-                  </div>
-                  {[
-                    ["🎨", "Theme", `Colors + font → /api/themes`],
-                    [
-                      "📐",
-                      "Layout",
-                      `${cfg.layoutType.replace(/_/g, " ")} → /api/layouts`,
-                    ],
-                    [
-                      "📋",
-                      "Template",
-                      `Plan: ${cfg.planLevel}, ${cfg.professionTags.length} profession(s) → /api/templates`,
-                    ],
-                  ].map(([ic, title, desc]) => (
-                    <div
-                      key={title}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        marginBottom: 8,
-                      }}
-                    >
-                      <span style={{ fontSize: 16 }}>{ic}</span>
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: "#1a1a1a",
-                          }}
-                        >
-                          {title}
-                        </div>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>
-                          {desc}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    Live Preview
+                  </span>
                 </div>
-
-                {saving && saveMsg && (
-                  <div
-                    style={{
-                      background: "#1a1a1a",
-                      color: "#fff",
-                      borderRadius: 8,
-                      padding: "10px 16px",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      marginBottom: 14,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <span
-                      style={{
-                        animation: "spin 1s linear infinite",
-                        display: "inline-block",
-                      }}
-                    >
-                      ⏳
-                    </span>
-                    {saveMsg}
-                  </div>
-                )}
-
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => setStep(2)} style={S.btnGhost}>
-                    ← Back
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving || saved}
-                    style={{
-                      ...S.btnPrimary,
-                      flex: 1,
-                      fontSize: 15,
-                      background: saved ? "#22c55e" : "#1a1a1a",
-                      opacity: saving || saved ? 0.8 : 1,
-                    }}
-                  >
-                    {saved
-                      ? "✓ Published!"
-                      : saving
-                        ? saveMsg || "Saving…"
-                        : "🚀 Publish Theme"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ═══ RIGHT: LIVE PREVIEW PANEL ═══ */}
-          <div style={S.previewCol}>
-            <div style={S.previewCard}>
-              {/* Preview header */}
-              <div style={S.previewHeader}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: "#ef4444",
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: "#f59e0b",
-                    }}
-                  />
+                <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
                   <div
                     style={{
                       width: 8,
                       height: 8,
                       borderRadius: "50%",
                       background: "#22c55e",
+                      animation: "shimmer 2s infinite",
                     }}
                   />
                   <span
                     style={{
-                      fontSize: 11,
-                      fontWeight: 700,
+                      fontSize: 9.5,
                       color: "#94a3b8",
-                      marginLeft: 6,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
+                      fontFamily: "system-ui",
+                      fontStyle: "italic",
                     }}
                   >
-                    Live Preview
+                    real-time
                   </span>
                 </div>
-                <div style={{ display: "flex", gap: 4 }}>
-                  {[cfg.backgroundColor, cfg.primaryColor, cfg.accentColor].map(
-                    (c, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          width: 12,
-                          height: 12,
-                          borderRadius: "50%",
-                          background: c,
-                          border: "1.5px solid rgba(0,0,0,0.1)",
-                        }}
-                      />
-                    ),
-                  )}
-                </div>
               </div>
 
-              {/* The actual preview — smoothly updates on every change */}
+              {/* Preview target (html2canvas captures this div) */}
+              <div ref={previewRef} style={{ padding: 16 }}>
+                <LivePreview cfg={cfg} onZoneClick={(s) => setStep(s)} />
+              </div>
+
+              {/* Hint */}
               <div
                 style={{
-                  padding: "12px 16px 16px",
-                  overflow: "auto",
-                  maxHeight: "70vh",
+                  padding: "9px 16px",
+                  background: "#f0f7ff",
+                  borderTop: "1.5px solid #dbeafe",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
                 }}
               >
-                <div
-                  style={{ transition: "all 0.4s cubic-bezier(0.16,1,0.3,1)" }}
-                  key={animKey + cfg.layoutType}
+                <span style={{ fontSize: 14 }}>👆</span>
+                <span
+                  style={{
+                    fontSize: 9.5,
+                    color: "#3b82f6",
+                    fontFamily: "system-ui",
+                  }}
                 >
-                  <MiniPreview cfg={cfg} scale={1} />
-                </div>
+                  Header→Colors · Sidebar→Effects · Experience→Layout ·
+                  Skills→Background
+                </span>
               </div>
 
-              {/* Font preview strip */}
+              {/* Typography strip */}
               <div
                 style={{
-                  margin: "0 16px 16px",
+                  margin: "0 14px 14px",
                   padding: "12px 14px",
-                  borderRadius: 10,
-                  border: "1px solid #e2e8f0",
-                  background: "#fafafa",
+                  borderRadius: 11,
+                  background: "#fafbff",
+                  border: "1px solid #eaedf2",
                 }}
               >
                 <div
                   style={{
-                    fontSize: 9,
+                    fontSize: 8.5,
                     fontWeight: 700,
                     color: "#94a3b8",
-                    letterSpacing: "0.08em",
                     textTransform: "uppercase",
+                    letterSpacing: "0.08em",
                     marginBottom: 8,
+                    fontFamily: "system-ui",
                   }}
                 >
-                  Typography Preview
+                  Typography
                 </div>
                 <div
                   style={{
-                    fontFamily: cfg.fontFamily,
-                    transition: "font-family 0.3s",
+                    fontFamily: cfg.headingFont,
+                    fontSize: cfg.headingScale * cfg.baseSize * 9 + "px",
+                    fontWeight: cfg.headingWeight,
+                    fontStyle: cfg.headingStyle,
+                    letterSpacing: cfg.headingLetterSpacing + "em",
+                    textTransform: cfg.headingTransform,
+                    color: cfg.primary,
+                    marginBottom: 3,
+                    transition: "all 0.3s",
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: 20,
-                      fontWeight: 700,
-                      color: cfg.primaryColor,
-                      marginBottom: 2,
-                    }}
-                  >
-                    Alexandra Chen
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: cfg.secondaryColor,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      marginBottom: 6,
-                    }}
-                  >
-                    Senior Designer · New York
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: cfg.textColor,
-                      lineHeight: 1.6,
-                      opacity: 0.8,
-                    }}
-                  >
-                    Passionate about crafting experiences that are both
-                    beautiful and meaningful.
-                  </div>
+                  Alexandra Chen
+                </div>
+                <div
+                  style={{
+                    fontFamily: cfg.bodyFont,
+                    fontSize: cfg.baseSize * 10 + "px",
+                    lineHeight: cfg.bodyLineHeight,
+                    color: cfg.textSecondary,
+                    transition: "all 0.3s",
+                  }}
+                >
+                  Senior Designer · New York
                 </div>
               </div>
 
-              {/* Color reference strip */}
-              <div style={{ margin: "0 16px 16px" }}>
+              {/* Palette strip */}
+              <div style={{ margin: "0 14px 16px" }}>
                 <div
                   style={{
                     display: "flex",
                     borderRadius: 8,
                     overflow: "hidden",
                     height: 10,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                   }}
                 >
                   {[
-                    cfg.primaryColor,
-                    cfg.accentColor,
-                    cfg.secondaryColor,
-                    cfg.textColor,
-                    cfg.backgroundColor,
+                    cfg.primary,
+                    cfg.accent,
+                    cfg.secondary,
+                    cfg.surfaceBackground,
+                    cfg.pageBackground,
                   ].map((c, i) => (
                     <div
                       key={i}
@@ -2330,15 +3652,16 @@ export default function AdminThemeStudioPage() {
                   ))}
                 </div>
                 <div style={{ display: "flex", marginTop: 4 }}>
-                  {["Primary", "Accent", "Secondary", "Text", "Background"].map(
+                  {["Primary", "Accent", "Secondary", "Surface", "BG"].map(
                     (l, i) => (
                       <div
                         key={i}
                         style={{
                           flex: 1,
-                          fontSize: 7,
+                          fontSize: 7.5,
                           color: "#94a3b8",
                           textAlign: "center",
+                          fontFamily: "system-ui",
                         }}
                       >
                         {l}
@@ -2351,96 +3674,112 @@ export default function AdminThemeStudioPage() {
           </div>
         </div>
 
-        {/* ════════════════════════════════════════════════════════
-            SAVED THEMES
-        ════════════════════════════════════════════════════════ */}
-        <div style={{ marginTop: 56 }}>
+        {/* PUBLISHED THEMES */}
+        <div>
           <div
             style={{
               display: "flex",
               alignItems: "baseline",
               justifyContent: "space-between",
-              marginBottom: 20,
+              marginBottom: 24,
             }}
           >
             <div>
               <h2
                 style={{
-                  fontSize: 22,
+                  fontSize: 26,
                   fontWeight: 800,
-                  margin: "0 0 4px",
-                  color: "#1a1a1a",
-                  fontFamily: "'Cormorant Garamond',Georgia,serif",
+                  color: "#1a1a2e",
+                  fontFamily: "'Fraunces',Georgia,serif",
+                  letterSpacing: "-0.03em",
+                  marginBottom: 4,
                 }}
               >
                 Published Themes
               </h2>
-              <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>
-                Click a theme to edit its colors and style
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "#94a3b8",
+                  fontFamily: "system-ui",
+                }}
+              >
+                Click any theme to edit — studio loads with all its values
               </p>
             </div>
             <span
               style={{
                 fontSize: 13,
                 fontWeight: 700,
-                color: "#94a3b8",
+                color: "#64748b",
                 background: "#f1f5f9",
                 borderRadius: 20,
-                padding: "3px 12px",
+                padding: "4px 16px",
+                fontFamily: "'Outfit',sans-serif",
               }}
             >
               {themes.length} theme{themes.length !== 1 ? "s" : ""}
             </span>
           </div>
 
-          {loadingList && (
+          {loadingThemes && (
             <div
               style={{
                 textAlign: "center",
-                padding: "40px 0",
+                padding: "48px 0",
                 color: "#94a3b8",
-                fontSize: 13,
+                fontFamily: "system-ui",
               }}
             >
               <div
                 style={{
                   animation: "spin 1s linear infinite",
                   display: "inline-block",
-                  marginBottom: 8,
+                  fontSize: 26,
+                  marginBottom: 10,
                 }}
               >
                 ⏳
               </div>
-              <div>Loading themes…</div>
+              <div style={{ fontSize: 13 }}>Loading themes…</div>
             </div>
           )}
 
-          {!loadingList && themes.length === 0 && (
+          {!loadingThemes && themes.length === 0 && (
             <div
               style={{
                 textAlign: "center",
-                padding: "60px 0",
+                padding: "72px 0",
                 color: "#cbd5e1",
-                border: "2px dashed #e2e8f0",
-                borderRadius: 16,
+                border: "2px dashed #e8eaf0",
+                borderRadius: 22,
               }}
             >
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🎨</div>
+              <div style={{ fontSize: 56, marginBottom: 14 }}>🎨</div>
               <div
                 style={{
-                  fontSize: 16,
-                  fontWeight: 700,
-                  marginBottom: 6,
+                  fontSize: 18,
+                  fontWeight: 800,
+                  marginBottom: 7,
                   color: "#94a3b8",
+                  fontFamily: "'Outfit',sans-serif",
                 }}
               >
                 No themes yet
               </div>
-              <div style={{ fontSize: 13 }}>Create your first theme above!</div>
+              <div style={{ fontSize: 13, fontFamily: "system-ui" }}>
+                Create your first one using the studio above!
+              </div>
             </div>
           )}
 
-          <div style={S.savedGrid}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))",
+              gap: 16,
+            }}
+          >
             {themes.map((t) => (
               <ThemeCard
                 key={t.id}
@@ -2455,328 +3794,3 @@ export default function AdminThemeStudioPage() {
     </>
   );
 }
-
-/* ─────────────────────────────────────────────────────────────
-   THEME CARD
-───────────────────────────────────────────────────────────── */
-function ThemeCard({ theme, onEdit, onDeactivate }) {
-  const c = theme.themeConfig || {};
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        ...S.themeCard,
-        transform: hovered ? "translateY(-4px)" : "translateY(0)",
-        boxShadow: hovered
-          ? "0 12px 32px rgba(0,0,0,0.12)"
-          : "0 2px 8px rgba(0,0,0,0.06)",
-      }}
-    >
-      {/* Color bar */}
-      <div style={{ height: 8, display: "flex" }}>
-        {[c.primaryColor, c.accentColor, c.secondaryColor, c.backgroundColor]
-          .filter(Boolean)
-          .map((col, i) => (
-            <div key={i} style={{ flex: 1, background: col }} />
-          ))}
-      </div>
-      {/* Mini preview */}
-      <div style={{ padding: "10px 12px 0", overflow: "hidden" }}>
-        <div
-          style={{
-            transform: "scale(0.48)",
-            transformOrigin: "top left",
-            width: "208%",
-            pointerEvents: "none",
-            opacity: hovered ? 1 : 0.85,
-            transition: "opacity 0.3s",
-          }}
-        >
-          <MiniPreview
-            cfg={{
-              primaryColor: c.primaryColor || "#1C1C1C",
-              secondaryColor: c.secondaryColor || "#8A8578",
-              accentColor: c.accentColor || "#4A6FA5",
-              backgroundColor: c.backgroundColor || "#F5F3EE",
-              textColor: c.textColor || "#1C1C1C",
-              fontFamily: c.fontFamily || "sans-serif",
-              borderRadius: parseInt(c.borderRadius || "8") + "",
-              layoutType: "SINGLE_COLUMN",
-            }}
-            scale={1}
-          />
-        </div>
-      </div>
-      <div style={{ padding: "8px 12px 12px" }}>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            color: "#1a1a1a",
-            marginBottom: 1,
-          }}
-        >
-          {theme.name}
-        </div>
-        <div
-          style={{
-            fontSize: 10,
-            color: "#94a3b8",
-            marginBottom: 10,
-            fontFamily: c.fontFamily,
-          }}
-        >
-          {c.fontFamily?.split(",")[0].replace(/'/g, "")?.slice(0, 22) || "—"}
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => onEdit(theme)} style={S.btnSmall}>
-            ✏ Edit
-          </button>
-          <button
-            onClick={() => onDeactivate(theme.id)}
-            style={{ ...S.btnSmall, color: "#ef4444", borderColor: "#fecaca" }}
-          >
-            ✕ Deactivate
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────
-   STYLES
-───────────────────────────────────────────────────────────── */
-const S = {
-  studioLayout: {
-    display: "flex",
-    gap: 24,
-    alignItems: "flex-start",
-  },
-  editorCol: {
-    flex: "0 0 460px",
-    minWidth: 0,
-  },
-  previewCol: {
-    flex: 1,
-    position: "sticky",
-    top: 80,
-  },
-  editorCard: {
-    background: "#fff",
-    borderRadius: 16,
-    border: "1px solid #e2e8f0",
-    padding: "24px",
-    boxShadow: "0 4px 24px rgba(0,0,0,0.05)",
-  },
-  previewCard: {
-    background: "#fff",
-    borderRadius: 16,
-    border: "1px solid #e2e8f0",
-    boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
-    overflow: "hidden",
-  },
-  previewHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "12px 16px",
-    background: "#fafafa",
-    borderBottom: "1px solid #f0f0f0",
-  },
-  stepPills: {
-    display: "flex",
-    gap: 8,
-    marginBottom: 16,
-  },
-  stepPill: {
-    padding: "6px 16px",
-    borderRadius: 20,
-    fontSize: 11,
-    fontWeight: 700,
-    border: "none",
-    cursor: "pointer",
-    transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
-    fontFamily: "system-ui",
-  },
-  sectionHead: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  sectionIcon: { fontSize: 16, marginRight: 8 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: 800,
-    color: "#1a1a1a",
-    letterSpacing: "-0.01em",
-  },
-  subTabs: {
-    display: "flex",
-    gap: 4,
-    marginBottom: 20,
-    padding: 4,
-    background: "#f1f5f9",
-    borderRadius: 10,
-  },
-  subTab: {
-    flex: 1,
-    padding: "7px 0",
-    borderRadius: 7,
-    border: "none",
-    fontSize: 11,
-    fontWeight: 700,
-    cursor: "pointer",
-    transition: "all 0.2s",
-    fontFamily: "system-ui",
-  },
-  input: {
-    width: "100%",
-    border: "1.5px solid #e2e8f0",
-    borderRadius: 10,
-    padding: "10px 13px",
-    fontSize: 13,
-    color: "#1a1a1a",
-    outline: "none",
-    background: "#fafafa",
-    boxSizing: "border-box",
-    fontFamily: "system-ui",
-    transition: "border-color 0.15s",
-  },
-  colorList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-  },
-  colorRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: "10px 12px",
-    borderRadius: 10,
-    position: "relative",
-    transition: "all 0.2s cubic-bezier(0.16,1,0.3,1)",
-    border: "1px solid #f0f0f0",
-  },
-  palBtn: {
-    background: "#fafafa",
-    border: "1.5px solid #e2e8f0",
-    borderRadius: 8,
-    padding: "7px 9px",
-    cursor: "pointer",
-    textAlign: "center",
-    minWidth: 68,
-    transition: "all 0.15s",
-    fontFamily: "system-ui",
-  },
-  fontGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: 7,
-  },
-  fontCard: {
-    padding: "10px 8px",
-    borderRadius: 10,
-    cursor: "pointer",
-    textAlign: "center",
-    transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
-    fontFamily: "system-ui",
-  },
-  layoutGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: 10,
-    marginBottom: 20,
-  },
-  layoutCard: {
-    padding: 10,
-    borderRadius: 12,
-    cursor: "pointer",
-    textAlign: "left",
-    transition: "all 0.25s cubic-bezier(0.16,1,0.3,1)",
-    fontFamily: "system-ui",
-    background: "#fff",
-    overflow: "hidden",
-  },
-  tagBtn: {
-    padding: "5px 11px",
-    borderRadius: 20,
-    cursor: "pointer",
-    fontSize: 11,
-    fontWeight: 600,
-    transition: "all 0.2s cubic-bezier(0.34,1.56,0.64,1)",
-    fontFamily: "system-ui",
-  },
-  planCard: {
-    flex: 1,
-    padding: "14px 10px",
-    borderRadius: 12,
-    cursor: "pointer",
-    textAlign: "center",
-    transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
-    fontFamily: "system-ui",
-  },
-  savedGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))",
-    gap: 14,
-  },
-  themeCard: {
-    background: "#fff",
-    border: "1px solid #e2e8f0",
-    borderRadius: 14,
-    overflow: "hidden",
-    transition: "all 0.3s cubic-bezier(0.16,1,0.3,1)",
-  },
-  btnPrimary: {
-    background: "#1a1a1a",
-    color: "#fff",
-    border: "none",
-    borderRadius: 10,
-    padding: "11px 24px",
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: "pointer",
-    fontFamily: "system-ui",
-    transition: "all 0.2s",
-  },
-  btnGhost: {
-    background: "#f1f5f9",
-    color: "#475569",
-    border: "none",
-    borderRadius: 10,
-    padding: "11px 20px",
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: "pointer",
-    fontFamily: "system-ui",
-  },
-  btnSmall: {
-    background: "#f8fafc",
-    color: "#475569",
-    border: "1px solid #e2e8f0",
-    borderRadius: 7,
-    padding: "4px 12px",
-    fontSize: 10,
-    fontWeight: 700,
-    cursor: "pointer",
-    fontFamily: "system-ui",
-  },
-  toast: {
-    position: "fixed",
-    bottom: 28,
-    right: 28,
-    zIndex: 9999,
-    color: "#fff",
-    padding: "12px 20px",
-    borderRadius: 12,
-    fontSize: 13,
-    fontWeight: 700,
-    boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-    fontFamily: "system-ui",
-    maxWidth: 320,
-  },
-};

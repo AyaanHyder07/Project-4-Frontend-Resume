@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import AdminDashboardLayout from "../../components/admin/AdminDashboardLayout";
-import { layoutAPI } from "../../api/endpoints";
+import { adminLayoutAPI } from "../../api/api";
 
 const LAYOUT_TYPES = ["SINGLE_COLUMN", "TWO_COLUMN", "SIDEBAR_LEFT", "SIDEBAR_RIGHT", "GRID", "MASONRY"];
 
@@ -29,7 +29,7 @@ const AdminLayoutsPage = () => {
 
   const load = () => {
     setLoading(true);
-    layoutAPI.getAll().then((r) => setLayouts(r.data)).catch(() => {}).finally(() => setLoading(false));
+    adminLayoutAPI.getAll().then((r) => setLayouts(r.data)).catch(() => {}).finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, []);
@@ -49,7 +49,7 @@ const AdminLayoutsPage = () => {
     if (!validateJson(form.layoutConfigJson)) return;
     const payload = { name: form.name, layoutType: form.layoutType, layoutConfigJson: JSON.parse(form.layoutConfigJson) };
     setSaving(true);
-    const call = editId ? layoutAPI.update(editId, payload) : layoutAPI.create(payload);
+    const call = editId ? adminLayoutAPI.update(editId, payload) : adminLayoutAPI.create(payload);
     call
       .then(() => { notify(editId ? "Layout updated!" : "Layout created!"); setShowForm(false); setForm(emptyForm); setEditId(null); load(); })
       .catch(() => notify("Failed to save.", "red"))
@@ -65,7 +65,7 @@ const AdminLayoutsPage = () => {
 
   const handleDeactivate = (id) => {
     if (!window.confirm("Deactivate this layout?")) return;
-    layoutAPI.deactivate(id)
+    adminLayoutAPI.deactivate(id)
       .then(() => { notify("Deactivated.", "red"); load(); })
       .catch(() => notify("Failed.", "red"));
   };

@@ -4,17 +4,7 @@ import {
   Camera, Save, Trash2, CheckCircle, AlertCircle,
   Loader2, ChevronDown, ChevronUp, Heart, Star, Trophy
 } from "lucide-react";
-
-/* ─────────────────────────────────────────────
-   MOCK  —  replace with real axios calls:
-
-   GET    /api/profile/{resumeId}          → load existing
-   POST   /api/profile   (multipart/form-data)
-          FormData: data=JSON blob, profilePhoto=file
-   PUT    /api/profile/{resumeId} (multipart/form-data)
-          FormData: data=JSON blob, profilePhoto=file
-   DELETE /api/profile/{resumeId}
-───────────────────────────────────────────── */
+import axios from "../../../api/api";
 
 const AVAILABILITY = ["OPEN_TO_WORK","FREELANCING","EMPLOYED","NOT_AVAILABLE"];
 const GENDER_OPTS  = ["MALE","FEMALE","NON_BINARY","PREFER_NOT_TO_SAY"];
@@ -93,14 +83,10 @@ export default function ProfileSection({ resumeId }) {
 
   /* ── Load existing profile ── */
   useEffect(() => {
-    /* Real call:
-       axios.get(`/api/profile/${resumeId}`, authCfg())
-         .then(r => { populate(r.data); setExisting(r.data); })
-         .catch(err => { if(err.response?.status === 404) setExisting(null); })
-         .finally(() => setLoading(false));
-    */
-    // MOCK: simulate no existing profile
-    setTimeout(() => { setExisting(null); setLoading(false); }, 500);
+    axios.get(`/api/profile/${resumeId}`)
+      .then(r => { populate(r.data); setExisting(r.data); })
+      .catch(err => { if(err.response?.status === 404) setExisting(null); })
+      .finally(() => setLoading(false));
   }, [resumeId]);
 
   const populate = (data) => {
@@ -141,40 +127,27 @@ export default function ProfileSection({ resumeId }) {
     setSaving(true);
     const fd = buildFormData();
 
-    /* Real call:
-       const call = existing
-         ? axios.put(`/api/profile/${resumeId}`, fd, {
-             headers: { ...authCfg().headers, "Content-Type":"multipart/form-data" }
-           })
-         : axios.post("/api/profile", fd, {
-             headers: { ...authCfg().headers, "Content-Type":"multipart/form-data" }
-           });
-       call.then(r => { setExisting(r.data); populate(r.data); showToast("Profile saved!"); })
-           .catch(() => showToast("Failed to save.", false))
-           .finally(() => setSaving(false));
-    */
+    const call = existing
+      ? axios.put(`/api/profile/${resumeId}`, fd, {
+          headers: { "Content-Type":"multipart/form-data" }
+        })
+      : axios.post("/api/profile", fd, {
+          headers: { "Content-Type":"multipart/form-data" }
+        });
 
-    // MOCK
-    setTimeout(() => {
-      const mockRes = { ...form, resumeId, profilePhotoUrl: photoPreview };
-      setExisting(mockRes);
-      setSaving(false);
-      showToast(existing ? "Profile updated!" : "Profile created!");
-    }, 900);
+    call.then(r => { setExisting(r.data); populate(r.data); showToast("Profile saved!"); })
+        .catch(() => showToast("Failed to save.", false))
+        .finally(() => setSaving(false));
   };
 
   /* ── Delete ── */
   const handleDelete = () => {
     if (!window.confirm("Delete this profile? This cannot be undone.")) return;
     setDeleting(true);
-    /* Real: axios.delete(`/api/profile/${resumeId}`, authCfg())
-         .then(() => { setExisting(null); setForm(EMPTY_FORM); setPreview(null); showToast("Profile deleted."); })
-         .catch(() => showToast("Failed to delete.", false))
-         .finally(() => setDeleting(false)); */
-    setTimeout(() => {
-      setExisting(null); setForm(EMPTY_FORM); setPreview(null);
-      setDeleting(false); showToast("Profile deleted.");
-    }, 700);
+    axios.delete(`/api/profile/${resumeId}`)
+      .then(() => { setExisting(null); setForm(EMPTY_FORM); setPreview(null); showToast("Profile deleted."); })
+      .catch(() => showToast("Failed to delete.", false))
+      .finally(() => setDeleting(false));
   };
 
   if (loading) return <CenterLoader/>;

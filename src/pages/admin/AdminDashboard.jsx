@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminDashboardLayout from "../../components/admin/AdminDashboardLayout";
-import { adminAPI } from "../../api/endpoints";
+import { adminAPI } from "../../api/api";
 
 const AdminDashboard = () => {
   const [resumes, setResumes] = useState([]);

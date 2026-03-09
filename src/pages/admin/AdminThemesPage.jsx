@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import AdminDashboardLayout from "../../components/admin/AdminDashboardLayout";
-import { themeAPI } from "../../api/endpoints";
+import { adminThemeAPI } from "../../api/api";
 
 const emptyForm = {
   name: "",
@@ -27,7 +27,7 @@ const AdminThemesPage = () => {
 
   const load = () => {
     setLoading(true);
-    themeAPI.getAll().then((r) => setThemes(r.data)).catch(() => {}).finally(() => setLoading(false));
+    adminThemeAPI.getAll().then((r) => setThemes(r.data)).catch(() => {}).finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, []);
@@ -47,7 +47,7 @@ const AdminThemesPage = () => {
     if (!validateJson(form.themeConfig)) return;
     const payload = { name: form.name, themeConfig: JSON.parse(form.themeConfig) };
     setSaving(true);
-    const call = editId ? themeAPI.update(editId, payload) : themeAPI.create(payload);
+    const call = editId ? adminThemeAPI.update(editId, payload) : adminThemeAPI.create(payload);
     call
       .then(() => { notify(editId ? "Theme updated!" : "Theme created!"); setShowForm(false); setForm(emptyForm); setEditId(null); load(); })
       .catch(() => notify("Failed to save.", "red"))
@@ -63,7 +63,7 @@ const AdminThemesPage = () => {
 
   const handleDeactivate = (id) => {
     if (!window.confirm("Deactivate this theme?")) return;
-    themeAPI.deactivate(id)
+    adminThemeAPI.deactivate(id)
       .then(() => { notify("Deactivated.", "red"); load(); })
       .catch(() => notify("Failed.", "red"));
   };

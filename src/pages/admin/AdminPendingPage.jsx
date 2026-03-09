@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import AdminDashboardLayout from "../../components/admin/AdminDashboardLayout";
-import { adminAPI } from "../../api/endpoints";
+import { adminAPI } from "../../api/api";
 
 const AdminPendingPage = () => {
   const [resumes, setResumes] = useState([]);

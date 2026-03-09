@@ -1,37 +1,20 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight, ArrowLeft, Check, FileText, Palette, Type,
   Loader2, Lock, Star, User, Briefcase, GraduationCap,
   Code, Award, ChevronRight, Globe, Eye
 } from "lucide-react";
+import axios from "../../api/api";
+import { useAuth } from "../../auth/AuthContext";
+import UserDashboardLayout from "../../components/user/UserDashboardLayout";
 
-/* ── MOCK DATA — replace useEffect fetches with real axios calls ── */
-const MOCK_TEMPLATES = [
-  { id:"t1", name:"Minimal Classic",    layoutId:"l1", defaultThemeId:"th1", planLevel:"FREE",    description:"Clean single-column layout", featured:true,
-    sections:["Profile","Experience","Education","Skills"] },
-  { id:"t2", name:"Modern Split",       layoutId:"l2", defaultThemeId:"th2", planLevel:"BASIC",   description:"Two-column with sidebar",     featured:false,
-    sections:["Profile","Experience","Skills","Projects"] },
-  { id:"t3", name:"Creative Editorial", layoutId:"l3", defaultThemeId:"th3", planLevel:"PRO",     description:"Bold editorial for creatives",featured:true,
-    sections:["Profile","Projects","Testimonials","Services"] },
-  { id:"t4", name:"Executive Profile",  layoutId:"l4", defaultThemeId:"th4", planLevel:"PREMIUM", description:"Premium full-bleed header",    featured:false,
-    sections:["Profile","Experience","Education","Publications","Financial"] },
-];
-const MOCK_THEMES = [
-  { id:"th1", name:"Parchment",  primary:"#1C1C1C", bg:"#F0EDE6", accent:"#8A8578",  text:"#333" },
-  { id:"th2", name:"Slate",      primary:"#1C3A5A", bg:"#EEF2F6", accent:"#4A7FA5",  text:"#1C3A5A" },
-  { id:"th3", name:"Amber",      primary:"#2D2D2D", bg:"#FBF8F3", accent:"#C9963A",  text:"#2D2D2D" },
-  { id:"th4", name:"Forest",     primary:"#1A3C2C", bg:"#F0F4F2", accent:"#3A7D44",  text:"#1A3C2C" },
-  { id:"th5", name:"Midnight",   primary:"#E8E6E0", bg:"#1A1A2E", accent:"#7B5EAE",  text:"#E8E6E0" },
-  { id:"th6", name:"Rose",       primary:"#2D1B1B", bg:"#FDF4F4", accent:"#C96A6A",  text:"#2D1B1B" },
-];
 const PROFESSIONS = [
   "Software Engineering","Product Management","UI/UX Design","Data Science",
   "Marketing","Finance","Healthcare","Legal","Education","Creative Arts","Other",
 ];
-const USER_PLAN = "PRO";
 const PLAN_RANK = { FREE:0, BASIC:1, PRO:2, PREMIUM:3 };
 const PLAN_COLOR = { FREE:"#8A8578", BASIC:"#1C6EA4", PRO:"#7B3FA0", PREMIUM:"#C9963A" };
-const allowed = (t) => PLAN_RANK[USER_PLAN] >= PLAN_RANK[t.planLevel];
 
 const STEPS = [
   { id:1, label:"Details",  Icon:Type },
@@ -52,10 +35,20 @@ const SECTION_ICONS = {
    MAIN
 ═══════════════════════════════════════════════════════════ */
 export default function ResumeCreatePage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [step,      setStep]    = useState(1);
   const [saving,    setSaving]  = useState(false);
   const [done,      setDone]    = useState(false);
   const [createdId, setCreated] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [themes,    setThemes]    = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState("");
+  
+  // Get user's plan (default to FREE if not found)
+  const userPlan = user?.plan?.level || "FREE";
+  const allowed = (t) => PLAN_RANK[userPlan] >= PLAN_RANK[t.planLevel];
 
   const [form, setForm] = useState({
     title:"", professionType:"", templateId:"", themeOverrideId:"",
@@ -63,9 +56,28 @@ export default function ResumeCreatePage() {
 
   const set = (k, v) => setForm(p => ({...p, [k]:v}));
 
-  const tpl   = MOCK_TEMPLATES.find(t => t.id === form.templateId);
+  // Fetch templates and themes on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [templatesRes, themesRes] = await Promise.all([
+          axios.get("/api/templates"),
+          axios.get("/api/themes")
+        ]);
+        setTemplates(templatesRes.data);
+        setThemes(themesRes.data);
+      } catch (error) {
+        console.error("Failed to fetch templates/themes:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const tpl   = templates.find(t => t.id === form.templateId);
   const thId  = form.themeOverrideId || tpl?.defaultThemeId;
-  const theme = MOCK_THEMES.find(t => t.id === thId) ?? MOCK_THEMES[0];
+  const theme = themes.find(t => t.id === thId) ?? themes[0];
 
   const canNext = () => {
     if (step===1) return form.title.trim().length >= 3 && !!form.professionType;
@@ -73,72 +85,85 @@ export default function ResumeCreatePage() {
     return true;
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     setSaving(true);
-    /* real call:
-       axios.post("/api/resumes", {
-         title: form.title, professionType: form.professionType,
-         templateId: form.templateId, themeOverrideId: form.themeOverrideId || null,
-       }, authCfg()).then(r => { setCreated(r.data.id); setDone(true); })
-    */
-    setTimeout(() => { setCreated("new-resume-id"); setSaving(false); setDone(true); }, 1200);
+    setError("");
+    try {
+      const response = await axios.post("/api/resumes", {
+        title: form.title,
+        professionType: form.professionType,
+        templateId: form.templateId,
+        themeOverrideId: form.themeOverrideId || null,
+      });
+      setCreated(response.data.id);
+      setDone(true);
+    } catch (error) {
+      console.error("Failed to create resume:", error);
+      const errMsg = error.response?.data?.message || "Failed to create resume. Please try again.";
+      setError(errMsg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (done) return <SuccessScreen title={form.title} resumeId={createdId}/>;
 
+  if (loading) return <UserDashboardLayout title="Create Resume" subtitle="Build your portfolio"><div style={{padding:40, textAlign:"center"}}>Loading templates and themes...</div></UserDashboardLayout>;
+
   return (
-    <div style={s.shell}>
-      {/* ── LEFT: form panel ── */}
-      <div style={s.formPanel}>
-        <div style={s.formInner}>
-          <div style={{marginBottom:24}}>
-            <h1 style={s.pageTitle}>Create Resume</h1>
-            <p style={s.pageSub}>BUILD YOUR PORTFOLIO</p>
-          </div>
+    <UserDashboardLayout title="Create Resume" subtitle="Build your portfolio">
+      <div style={s.shell}>
+        {/* ── LEFT: form panel ── */}
+        <div style={s.formPanel}>
+          <div style={s.formInner}>
+            <div style={{marginBottom:24}}>
+              <h1 style={s.pageTitle}>Create Resume</h1>
+              <p style={s.pageSub}>BUILD YOUR PORTFOLIO</p>
+            </div>
 
-          <Stepper current={step}/>
+            <Stepper current={step}/>
 
-          <div style={s.card}>
-            {step===1 && <StepDetails form={form} set={set}/>}
-            {step===2 && <StepTemplate form={form} set={set}/>}
-            {step===3 && <StepTheme form={form} set={set} tpl={tpl}/>}
-            {step===4 && <StepReview form={form} tpl={tpl} theme={theme}/>}
-          </div>
+            <div style={s.card}>
+              {error && <div style={{background:"#fee", color:"#c33", padding:12, borderRadius:8, marginBottom:16, fontSize:13}}>{error}</div>}
+              {step===1 && <StepDetails form={form} set={set}/>}
+              {step===2 && <StepTemplate form={form} set={set} templates={templates} allowed={allowed} loading={loading}/>}
+              {step===3 && <StepTheme form={form} set={set} tpl={tpl} themes={themes}/>}
+              {step===4 && <StepReview form={form} tpl={tpl} theme={theme}/>}
+            </div>
 
-          <div style={s.navRow}>
-            <button style={s.btnSec}
-              onClick={() => step>1 ? setStep(p=>p-1) : alert("← /resumes")}>
-              <ArrowLeft size={13}/> {step>1 ? "Back" : "Cancel"}
-            </button>
-            {step<4 ? (
-              <button
-                style={{...s.btnPri, opacity:canNext()?1:0.4, cursor:canNext()?"pointer":"not-allowed"}}
-                onClick={() => canNext() && setStep(p=>p+1)}>
-                Continue <ArrowRight size={13}/>
+            <div style={s.navRow}>
+              <button style={s.btnSec}
+                onClick={() => step>1 ? setStep(p=>p-1) : navigate("/resumes")}>
+                <ArrowLeft size={13}/> {step>1 ? "Back" : "Cancel"}
               </button>
-            ) : (
-              <button style={s.btnPri} onClick={handleCreate} disabled={saving}>
-                {saving
-                  ? <><Loader2 size={13} style={{animation:"spin .8s linear infinite"}}/> Creating…</>
-                  : <><Check size={13}/> Create Resume</>}
-              </button>
-            )}
+              {step<4 ? (
+                <button
+                  style={{...s.btnPri, opacity:canNext()?1:0.4, cursor:canNext()?"pointer":"not-allowed"}}
+                  onClick={() => canNext() && setStep(p=>p+1)}>
+                  Continue <ArrowRight size={13}/>
+                </button>
+              ) : (
+                <button style={s.btnPri} onClick={handleCreate} disabled={saving}>
+                  {saving
+                    ? <><Loader2 size={13} style={{animation:"spin .8s linear infinite"}}/> Creating…</>
+                    : <><Check size={13}/> Create Resume</>}
+                </button>
+              )}
+            </div>
           </div>
         </div>
+        {/* ── RIGHT: live preview ── */}
+        <div style={s.previewPanel}>
+          <p style={s.previewLabel}>LIVE PREVIEW</p>
+          <LivePreview form={form} tpl={tpl} theme={theme}/>
+        </div>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}
+          .pill-btn:hover{background:#2a2a2a!important;color:#F0EDE6!important}
+          .tpl-card:hover{border-color:#8A8578!important}
+          .theme-card:hover{border-color:#8A8578!important}
+        `}</style>
       </div>
-
-      {/* ── RIGHT: live preview ── */}
-      <div style={s.previewPanel}>
-        <p style={s.previewLabel}>LIVE PREVIEW</p>
-        <LivePreview form={form} tpl={tpl} theme={theme}/>
-      </div>
-
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}
-        .pill-btn:hover{background:#2a2a2a!important;color:#F0EDE6!important}
-        .tpl-card:hover{border-color:#8A8578!important}
-        .theme-card:hover{border-color:#8A8578!important}
-      `}</style>
-    </div>
+    </UserDashboardLayout>
   );
 }
 
@@ -206,13 +231,15 @@ function StepDetails({ form, set }) {
 }
 
 /* ── Step 2: Template ── */
-function StepTemplate({ form, set }) {
+function StepTemplate({ form, set, templates, allowed, loading }) {
+  if (loading) return <div>Loading templates...</div>;
+  if (!templates || templates.length === 0) return <div>No templates available</div>;
   return (
     <div>
       <p style={s.stepTitle}>Choose a template</p>
       <p style={s.stepDesc}>Templates define your resume structure. Locked ones need a plan upgrade.</p>
       <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12}}>
-        {MOCK_TEMPLATES.map(t => {
+        {templates.map(t => {
           const ok  = allowed(t);
           const sel = form.templateId === t.id;
           const pc  = PLAN_COLOR[t.planLevel];
@@ -251,14 +278,15 @@ function StepTemplate({ form, set }) {
 }
 
 /* ── Step 3: Theme ── */
-function StepTheme({ form, set, tpl }) {
+function StepTheme({ form, set, tpl, themes }) {
   const activeId = form.themeOverrideId || tpl?.defaultThemeId;
+  if (!themes || themes.length === 0) return <div>No themes available</div>;
   return (
     <div>
       <p style={s.stepTitle}>Pick a colour theme</p>
       <p style={s.stepDesc}>Override the template default or leave it as-is. Changeable any time.</p>
       <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10}}>
-        {MOCK_THEMES.map(th => {
+        {themes.map(th => {
           const active = activeId === th.id;
           return (
             <div key={th.id} className="theme-card" style={{
@@ -321,7 +349,8 @@ function StepReview({ form, tpl, theme }) {
 
 /* ── Live Preview ── */
 function LivePreview({ form, tpl, theme }) {
-  const t  = theme ?? MOCK_THEMES[0];
+  const defaultTheme = { primary: "#1C1C1C", accent: "#8A8578", bg: "#F0EDE6" };
+  const t  = theme ?? defaultTheme;
   const hasTitle = form.title.trim().length > 0;
   const hasProf  = !!form.professionType;
   const hasTpl   = !!tpl;
@@ -384,6 +413,8 @@ function LivePreview({ form, tpl, theme }) {
 
 /* ── Success ── */
 function SuccessScreen({ title, resumeId }) {
+  const navigate = useNavigate();
+
   return (
     <div style={{fontFamily:"'DM Sans',sans-serif", background:"#F0EDE6", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:28}}>
       <div style={{textAlign:"center", maxWidth:400}}>
@@ -395,7 +426,7 @@ function SuccessScreen({ title, resumeId }) {
           <strong style={{color:"#1C1C1C"}}>{title}</strong> has been created as a draft.<br/>
           Now let's fill in your details.
         </p>
-        <button style={s.btnPri} onClick={() => alert(`→ /resumes/${resumeId}/edit`)}>
+        <button style={s.btnPri} onClick={() => navigate(`/resumes/${resumeId}`)}>
           Start Editing <ArrowRight size={14}/>
         </button>
       </div>

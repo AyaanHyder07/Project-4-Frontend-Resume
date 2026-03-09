@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '../api';
+import axios from '../api/api';
+
 
 const AuthContext = createContext(null);
 
@@ -30,7 +31,7 @@ export function AuthProvider({ children }) {
   }, []);
 
 const login = async (identifier, password) => {
-  const { data } = await authAPI.login({
+  const { data } = await axios.post("/api/auth/login", {
     identifier: identifier.trim(),
     password
   });
@@ -49,7 +50,7 @@ const login = async (identifier, password) => {
 };
 
 const register = async (data) => {
-  const { data: response } = await authAPI.register(data);
+  const { data: response } = await axios.post("/api/auth/signup", data);
 
   const u = {
     username: response.username,
@@ -69,7 +70,7 @@ const register = async (data) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    authAPI.logout().catch(() => {});
+    axios.post("/api/auth/logout").catch(() => {});
   };
 
   const isAdmin = () => {

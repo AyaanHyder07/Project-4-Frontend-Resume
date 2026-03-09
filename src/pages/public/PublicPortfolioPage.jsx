@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { publicAPI, contactAPI, profileAPI } from "../../api/endpoints";
+import { publicAPI, contactAPI, profileAPI } from "../../api/api";
 
 const PublicPortfolioPage = () => {
   const { slug } = useParams();

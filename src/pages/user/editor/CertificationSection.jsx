@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import api from "../../../api/axios";
+import axiosInstance from "../../../api/api";
 import {
   Plus, Edit3, Trash2, Award, Save, X,
   Loader2, CheckCircle, AlertCircle,
@@ -38,7 +38,7 @@ export default function CertificationSection({ resumeId }) {
 
   /* ── load ── */
   const load = () =>
-    api.get(`/api/certifications/resume/${resumeId}`)
+    axiosInstance.get(`/api/certifications/resume/${resumeId}`)
       .then(r => setCerts(r.data))
       .catch(() => showToast("Failed to load certifications.", false))
       .finally(() => setLoading(false));
@@ -87,8 +87,8 @@ export default function CertificationSection({ resumeId }) {
     const fd  = buildFD();
     const cfg = { headers: { "Content-Type":"multipart/form-data" } };
     const req = editId
-      ? api.put(`/api/certifications/${editId}`, fd, cfg)
-      : api.post("/api/certifications", fd, cfg);
+      ? axiosInstance.put(`/api/certifications/${editId}`, fd, cfg)
+      : axiosInstance.post("/api/certifications", fd, cfg);
 
     req
       .then(() => { showToast(editId ? "Updated!" : "Added!"); setShowForm(false); load(); })
@@ -99,7 +99,7 @@ export default function CertificationSection({ resumeId }) {
   /* ── delete ── */
   const handleDelete = (id) => {
     if (!window.confirm("Delete this certification?")) return;
-    api.delete(`/api/certifications/${id}`)
+    axiosInstance.delete(`/api/certifications/${id}`)
       .then(() => { showToast("Deleted."); load(); })
       .catch(() => showToast("Delete failed.", false));
   };
@@ -117,7 +117,7 @@ export default function CertificationSection({ resumeId }) {
     setCerts(reordered);
     setDragId(null);
     setReordering(true);
-    api.put(`/api/certifications/resume/${resumeId}/reorder`, reordered.map(c => c.id))
+    axiosInstance.put(`/api/certifications/resume/${resumeId}/reorder`, reordered.map(c => c.id))
       .catch(() => { showToast("Reorder failed.", false); load(); })
       .finally(() => setReordering(false));
   };

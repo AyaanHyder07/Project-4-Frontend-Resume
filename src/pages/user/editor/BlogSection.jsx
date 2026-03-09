@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import api from "../../../api/axios";
+import axiosInstance from "../../../api/api";
 import {
   Plus, Edit3, Trash2, Eye, EyeOff, Image, Tag,
   Save, X, Loader2, CheckCircle, AlertCircle,
@@ -36,7 +36,7 @@ export default function BlogSection({ resumeId }) {
 
   /* ── load ── */
   const load = () =>
-    api.get(`/api/blogs/resume/${resumeId}`)
+    axiosInstance.get(`/api/blogs/resume/${resumeId}`)
       .then(r => setBlogs(r.data))
       .catch(() => showToast("Failed to load blogs.", false))
       .finally(() => setLoading(false));
@@ -99,8 +99,8 @@ export default function BlogSection({ resumeId }) {
     const fd  = buildFD();
     const cfg = { headers: { "Content-Type": "multipart/form-data" } };
     const req = editId
-      ? api.put(`/api/blogs/${editId}`, fd, cfg)
-      : api.post("/api/blogs", fd, cfg);
+      ? axiosInstance.put(`/api/blogs/${editId}`, fd, cfg)
+      : axiosInstance.post("/api/blogs", fd, cfg);
 
     req
       .then(() => { showToast(editId ? "Blog updated!" : "Blog created!"); setShowForm(false); load(); })
@@ -111,7 +111,7 @@ export default function BlogSection({ resumeId }) {
   /* ── delete ── */
   const handleDelete = (id) => {
     if (!window.confirm("Delete this blog post?")) return;
-    api.delete(`/api/blogs/${id}`)
+    axiosInstance.delete(`/api/blogs/${id}`)
       .then(() => { showToast("Deleted."); load(); })
       .catch(() => showToast("Delete failed.", false));
   };
@@ -122,7 +122,7 @@ export default function BlogSection({ resumeId }) {
     const payload = { title: blog.title, content: blog.content, tags: blog.tags, visibility: next };
     const fd = new FormData();
     fd.append("data", new Blob([JSON.stringify(payload)], { type: "application/json" }));
-    api.put(`/api/blogs/${blog.id}`, fd, { headers: { "Content-Type": "multipart/form-data" } })
+    axiosInstance.put(`/api/blogs/${blog.id}`, fd, { headers: { "Content-Type": "multipart/form-data" } })
       .then(() => { showToast(next === "Public" ? "Published!" : "Set to Draft."); load(); })
       .catch(() => showToast("Failed.", false));
   };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { Zap, ArrowRight, CheckCircle } from "lucide-react";
+import { subscriptionAPI } from "../../api/api";
 
 const PLAN_META = {
   FREE:    { color:"#8A8578", bg:"rgba(138,133,120,0.15)", label:"Free",    perks:["1 resume draft"] },
@@ -16,12 +16,10 @@ export default function SubscriptionBadge() {
   const [active, setActive]   = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const cfg   = { headers: { Authorization: `Bearer ${token}` } };
-    axios.get("/api/subscription/plan", cfg)
+    subscriptionAPI.getMyPlan()
       .then(r => setPlan(r.data))
       .catch(() => setPlan("FREE"));
-    axios.get("/api/subscription/active", cfg)
+    subscriptionAPI.isActive()
       .then(r => setActive(r.data))
       .catch(() => setActive(false));
   }, []);
