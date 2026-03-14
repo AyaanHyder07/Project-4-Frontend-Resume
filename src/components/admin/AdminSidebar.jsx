@@ -3,6 +3,7 @@ import {
   LayoutDashboard, FileText, Clock,
   Palette, Layout, LogOut,
 } from "lucide-react";
+import { CreditCard } from "lucide-react";
 // No CSS import — AdminDashboardLayout handles it
 
 const AdminSidebar = ({ open, setOpen }) => {
@@ -32,6 +33,9 @@ const AdminSidebar = ({ open, setOpen }) => {
         <NavItem to="/admin/themes"  icon={<Palette size={16} />} label="Themes"  onClick={close} />
         <NavItem to="/admin/layouts" icon={<Layout  size={16} />} label="Layouts" onClick={close} />
       </nav>
+
+      <span className="admin-nav-label">Billing</span>
+<NavItem to="/admin/plans" icon={<CreditCard size={16} />} label="Plans & Pricing" onClick={close} />
 
       <div className="admin-sidebar-footer">
         <button className="admin-logout-btn" onClick={logout}>

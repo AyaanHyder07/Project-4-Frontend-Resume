@@ -72,7 +72,7 @@ const TemplatesPage = () => {
             <div><strong>{t.name}</strong></div>
             <div style={{ fontSize: "0.85rem", color: "#555" }}>{t.description}</div>
             <div style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
-              Plan: {t.planType} | Profession: {t.professionType}
+              Plan: {t.planLevel || "FREE"} | Profession: {t.professionTags?.length ? t.professionTags.join(", ") : "Any"}
             </div>
           </div>
         ))}

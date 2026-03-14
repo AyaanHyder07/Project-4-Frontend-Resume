@@ -49,154 +49,154 @@ export const dashboardAPI = {
   get: () => axiosInstance.get("/api/dashboard"),
 };
 
-export const resumeAPI = {
-  create: (data) => axiosInstance.post("/api/resumes", data),
-  getById: (resumeId) => axiosInstance.get(`/api/resumes/${resumeId}`),
-  updateMeta: (resumeId, title, profession) =>
-    axiosInstance.patch(`/api/resumes/${resumeId}/meta`, { title, professionType: profession }),
-  changeTheme: (resumeId, themeId) =>
-    axiosInstance.patch(`/api/resumes/${resumeId}/theme`, { themeId }),
-  submit: (resumeId) => axiosInstance.post(`/api/resumes/${resumeId}/submit`),
-  publish: (resumeId) => axiosInstance.post(`/api/resumes/${resumeId}/publish`),
-  unpublish: (resumeId) => axiosInstance.post(`/api/resumes/${resumeId}/unpublish`),
-  delete: (resumeId) => axiosInstance.delete(`/api/resumes/${resumeId}`),
-};
+// export const resumeAPI = {
+//   create: (data) => axiosInstance.post("/api/resumes", data),
+//   getById: (resumeId) => axiosInstance.get(`/api/resumes/${resumeId}`),
+//   updateMeta: (resumeId, title, profession) =>
+//     axiosInstance.patch(`/api/resumes/${resumeId}/meta`, { title, professionType: profession }),
+//   changeTheme: (resumeId, themeId) =>
+//     axiosInstance.patch(`/api/resumes/${resumeId}/theme`, { themeId }),
+//   submit: (resumeId) => axiosInstance.post(`/api/resumes/${resumeId}/submit`),
+//   publish: (resumeId) => axiosInstance.post(`/api/resumes/${resumeId}/publish`),
+//   unpublish: (resumeId) => axiosInstance.post(`/api/resumes/${resumeId}/unpublish`),
+//   delete: (resumeId) => axiosInstance.delete(`/api/resumes/${resumeId}`),
+// // };
 
-export const profileAPI = {
-  // NOTE: create/update are multipart/form-data in backend; use raw axiosInstance in UI code for FormData
-  getPrivate: (resumeId) => axiosInstance.get(`/api/profile/${resumeId}`),
-  getPublic: (resumeId) => axiosInstance.get(`/api/profile/public/${resumeId}`),
-  delete: (resumeId) => axiosInstance.delete(`/api/profile/${resumeId}`),
-};
+// export const profileAPI = {
+//   // NOTE: create/update are multipart/form-data in backend; use raw axiosInstance in UI code for FormData
+//   getPrivate: (resumeId) => axiosInstance.get(`/api/profile/${resumeId}`),
+//   getPublic: (resumeId) => axiosInstance.get(`/api/profile/public/${resumeId}`),
+//   delete: (resumeId) => axiosInstance.delete(`/api/profile/${resumeId}`),
+// };
 
-export const experienceAPI = {
-  create: (data) => axiosInstance.post("/api/experiences", data),
-  update: (id, data) => axiosInstance.put(`/api/experiences/${id}`, data),
-  delete: (id) => axiosInstance.delete(`/api/experiences/${id}`),
-  getByResume: (resumeId) => axiosInstance.get(`/api/experiences/resume/${resumeId}`),
-  reorder: (resumeId, orderedIds) =>
-    axiosInstance.put(`/api/experiences/resume/${resumeId}/reorder`, orderedIds),
-};
+// export const experienceAPI = {
+//   create: (data) => axiosInstance.post("/api/experiences", data),
+//   update: (id, data) => axiosInstance.put(`/api/experiences/${id}`, data),
+//   delete: (id) => axiosInstance.delete(`/api/experiences/${id}`),
+//   getByResume: (resumeId) => axiosInstance.get(`/api/experiences/resume/${resumeId}`),
+//   reorder: (resumeId, orderedIds) =>
+//     axiosInstance.put(`/api/experiences/resume/${resumeId}/reorder`, orderedIds),
+// };
 
-export const educationAPI = {
-  create: (data) => axiosInstance.post("/api/educations", data),
-  update: (id, data) => axiosInstance.put(`/api/educations/${id}`, data),
-  delete: (id) => axiosInstance.delete(`/api/educations/${id}`),
-  getByResume: (resumeId) => axiosInstance.get(`/api/educations/resume/${resumeId}`),
-  reorder: (resumeId, orderedIds) =>
-    axiosInstance.put(`/api/educations/resume/${resumeId}/reorder`, orderedIds),
-};
+// export const educationAPI = {
+//   create: (data) => axiosInstance.post("/api/educations", data),
+//   update: (id, data) => axiosInstance.put(`/api/educations/${id}`, data),
+//   delete: (id) => axiosInstance.delete(`/api/educations/${id}`),
+//   getByResume: (resumeId) => axiosInstance.get(`/api/educations/resume/${resumeId}`),
+//   reorder: (resumeId, orderedIds) =>
+//     axiosInstance.put(`/api/educations/resume/${resumeId}/reorder`, orderedIds),
+// };
 
-export const skillAPI = {
-  create: (data) => axiosInstance.post("/api/skills", data),
-  update: (id, data) => axiosInstance.put(`/api/skills/${id}`, data),
-  delete: (id) => axiosInstance.delete(`/api/skills/${id}`),
-  getByResume: (resumeId) => axiosInstance.get(`/api/skills/resume/${resumeId}`),
-  reorder: (resumeId, orderedIds) =>
-    axiosInstance.put(`/api/skills/resume/${resumeId}/reorder`, orderedIds),
-};
+// export const skillAPI = {
+//   create: (data) => axiosInstance.post("/api/skills", data),
+//   update: (id, data) => axiosInstance.put(`/api/skills/${id}`, data),
+//   delete: (id) => axiosInstance.delete(`/api/skills/${id}`),
+//   getByResume: (resumeId) => axiosInstance.get(`/api/skills/resume/${resumeId}`),
+//   reorder: (resumeId, orderedIds) =>
+//     axiosInstance.put(`/api/skills/resume/${resumeId}/reorder`, orderedIds),
+// };
 
-export const projectAPI = {
-  create: (data) => axiosInstance.post("/api/projects", data),
-  update: (id, data) => axiosInstance.put(`/api/projects/${id}`, data),
-  delete: (id) => axiosInstance.delete(`/api/projects/${id}`),
-  getByResume: (resumeId) => axiosInstance.get(`/api/projects/resume/${resumeId}`),
-  reorder: (resumeId, orderedIds) =>
-    axiosInstance.put(`/api/projects/resume/${resumeId}/reorder`, orderedIds),
-};
+// export const projectAPI = {
+//   create: (data) => axiosInstance.post("/api/projects", data),
+//   update: (id, data) => axiosInstance.put(`/api/projects/${id}`, data),
+//   delete: (id) => axiosInstance.delete(`/api/projects/${id}`),
+//   getByResume: (resumeId) => axiosInstance.get(`/api/projects/resume/${resumeId}`),
+//   reorder: (resumeId, orderedIds) =>
+//     axiosInstance.put(`/api/projects/resume/${resumeId}/reorder`, orderedIds),
+// };
 
-export const certificationAPI = {
-  create: (data) => {
-    const fd = new FormData();
-    fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    if (data.file) fd.append('file', data.file);
-    return axiosInstance.post("/api/certifications", fd);
-  },
-  update: (id, data) => {
-    const fd = new FormData();
-    fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    if (data.file) fd.append('file', data.file);
-    return axiosInstance.put(`/api/certifications/${id}`, fd);
-  },
-  delete: (id) => axiosInstance.delete(`/api/certifications/${id}`),
-  getByResume: (resumeId) => axiosInstance.get(`/api/certifications/resume/${resumeId}`),
-  reorder: (resumeId, orderedIds) =>
-    axiosInstance.put(`/api/certifications/resume/${resumeId}/reorder`, orderedIds),
-};
+// export const certificationAPI = {
+//   create: (data) => {
+//     const fd = new FormData();
+//     fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+//     if (data.file) fd.append('file', data.file);
+//     return axiosInstance.post("/api/certifications", fd);
+//   },
+//   update: (id, data) => {
+//     const fd = new FormData();
+//     fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+//     if (data.file) fd.append('file', data.file);
+//     return axiosInstance.put(`/api/certifications/${id}`, fd);
+//   },
+//   delete: (id) => axiosInstance.delete(`/api/certifications/${id}`),
+//   getByResume: (resumeId) => axiosInstance.get(`/api/certifications/resume/${resumeId}`),
+//   reorder: (resumeId, orderedIds) =>
+//     axiosInstance.put(`/api/certifications/resume/${resumeId}/reorder`, orderedIds),
+// };
 
-export const publicationAPI = {
-  create: (data) => axiosInstance.post("/api/publications", data),
-  update: (id, data) => axiosInstance.put(`/api/publications/${id}`, data),
-  delete: (id) => axiosInstance.delete(`/api/publications/${id}`),
-  getByResume: (resumeId) => axiosInstance.get(`/api/publications/resume/${resumeId}`),
-  reorder: (resumeId, orderedIds) =>
-    axiosInstance.put(`/api/publications/resume/${resumeId}/reorder`, orderedIds),
-};
+// export const publicationAPI = {
+//   create: (data) => axiosInstance.post("/api/publications", data),
+//   update: (id, data) => axiosInstance.put(`/api/publications/${id}`, data),
+//   delete: (id) => axiosInstance.delete(`/api/publications/${id}`),
+//   getByResume: (resumeId) => axiosInstance.get(`/api/publications/resume/${resumeId}`),
+//   reorder: (resumeId, orderedIds) =>
+//     axiosInstance.put(`/api/publications/resume/${resumeId}/reorder`, orderedIds),
+// };
 
-export const testimonialAPI = {
-  create: (data) => axiosInstance.post("/api/testimonials", data),
-  update: (id, data) => axiosInstance.put(`/api/testimonials/${id}`, data),
-  delete: (id) => axiosInstance.delete(`/api/testimonials/${id}`),
-  getByResume: (resumeId) => axiosInstance.get(`/api/testimonials/resume/${resumeId}`),
-  reorder: (resumeId, orderedIds) =>
-    axiosInstance.put(`/api/testimonials/resume/${resumeId}/reorder`, orderedIds),
-};
+// export const testimonialAPI = {
+//   create: (data) => axiosInstance.post("/api/testimonials", data),
+//   update: (id, data) => axiosInstance.put(`/api/testimonials/${id}`, data),
+//   delete: (id) => axiosInstance.delete(`/api/testimonials/${id}`),
+//   getByResume: (resumeId) => axiosInstance.get(`/api/testimonials/resume/${resumeId}`),
+//   reorder: (resumeId, orderedIds) =>
+//     axiosInstance.put(`/api/testimonials/resume/${resumeId}/reorder`, orderedIds),
+// };
 
-export const serviceAPI = {
-  create: (data) => axiosInstance.post("/api/services", data),
-  update: (id, data) => axiosInstance.put(`/api/services/${id}`, data),
-  delete: (id) => axiosInstance.delete(`/api/services/${id}`),
-  getByResume: (resumeId) => axiosInstance.get(`/api/services/resume/${resumeId}`),
-  reorder: (resumeId, orderedIds) =>
-    axiosInstance.put(`/api/services/resume/${resumeId}/reorder`, orderedIds),
-};
+// export const serviceAPI = {
+//   create: (data) => axiosInstance.post("/api/services", data),
+//   update: (id, data) => axiosInstance.put(`/api/services/${id}`, data),
+//   delete: (id) => axiosInstance.delete(`/api/services/${id}`),
+//   getByResume: (resumeId) => axiosInstance.get(`/api/services/resume/${resumeId}`),
+//   reorder: (resumeId, orderedIds) =>
+//     axiosInstance.put(`/api/services/resume/${resumeId}/reorder`, orderedIds),
+// };
 
-export const exhibitionAPI = {
-  create: (data) => axiosInstance.post("/api/exhibitions", data),
-  update: (id, data) => axiosInstance.put(`/api/exhibitions/${id}`, data),
-  delete: (id) => axiosInstance.delete(`/api/exhibitions/${id}`),
-  getAll: (resumeId) => axiosInstance.get(`/api/exhibitions/resume/${resumeId}`),
-  reorder: (resumeId, orderedIds) =>
-    axiosInstance.put(`/api/exhibitions/resume/${resumeId}/reorder`, orderedIds),
-};
+// export const exhibitionAPI = {
+//   create: (data) => axiosInstance.post("/api/exhibitions", data),
+//   update: (id, data) => axiosInstance.put(`/api/exhibitions/${id}`, data),
+//   delete: (id) => axiosInstance.delete(`/api/exhibitions/${id}`),
+//   getAll: (resumeId) => axiosInstance.get(`/api/exhibitions/resume/${resumeId}`),
+//   reorder: (resumeId, orderedIds) =>
+//     axiosInstance.put(`/api/exhibitions/resume/${resumeId}/reorder`, orderedIds),
+// };
 
-export const financialAPI = {
-  create: (data) => {
-    const fd = new FormData();
-    fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    if (data.file) fd.append('file', data.file);
-    return axiosInstance.post("/api/financial-credentials", fd);
-  },
-  update: (id, data) => {
-    const fd = new FormData();
-    fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    if (data.file) fd.append('file', data.file);
-    return axiosInstance.put(`/api/financial-credentials/${id}`, fd);
-  },
-  delete: (id) => axiosInstance.delete(`/api/financial-credentials/${id}`),
-  getByResume: (resumeId) => axiosInstance.get(`/api/financial-credentials/resume/${resumeId}`),
-  reorder: (resumeId, orderedIds) =>
-    axiosInstance.put(`/api/financial-credentials/resume/${resumeId}/reorder`, orderedIds),
-};
+// export const financialAPI = {
+//   create: (data) => {
+//     const fd = new FormData();
+//     fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+//     if (data.file) fd.append('file', data.file);
+//     return axiosInstance.post("/api/financial-credentials", fd);
+//   },
+//   update: (id, data) => {
+//     const fd = new FormData();
+//     fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+//     if (data.file) fd.append('file', data.file);
+//     return axiosInstance.put(`/api/financial-credentials/${id}`, fd);
+//   },
+//   delete: (id) => axiosInstance.delete(`/api/financial-credentials/${id}`),
+//   getByResume: (resumeId) => axiosInstance.get(`/api/financial-credentials/resume/${resumeId}`),
+//   reorder: (resumeId, orderedIds) =>
+//     axiosInstance.put(`/api/financial-credentials/resume/${resumeId}/reorder`, orderedIds),
+// };
 
-export const blogAPI = {
-  create: (data) => {
-    const fd = new FormData();
-    fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    if (data.coverFile) fd.append('coverFile', data.coverFile);
-    return axiosInstance.post("/api/blogs", fd);
-  },
-  update: (id, data) => {
-    const fd = new FormData();
-    fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    if (data.coverFile) fd.append('coverFile', data.coverFile);
-    return axiosInstance.put(`/api/blogs/${id}`, fd);
-  },
-  delete: (id) => axiosInstance.delete(`/api/blogs/${id}`),
-  getByResume: (resumeId) => axiosInstance.get(`/api/blogs/resume/${resumeId}`),
-  reorder: (resumeId, orderedIds) =>
-    axiosInstance.put(`/api/blogs/resume/${resumeId}/reorder`, orderedIds),
-};
+// export const blogAPI = {
+//   create: (data) => {
+//     const fd = new FormData();
+//     fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+//     if (data.coverFile) fd.append('coverFile', data.coverFile);
+//     return axiosInstance.post("/api/blogs", fd);
+//   },
+//   update: (id, data) => {
+//     const fd = new FormData();
+//     fd.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+//     if (data.coverFile) fd.append('coverFile', data.coverFile);
+//     return axiosInstance.put(`/api/blogs/${id}`, fd);
+//   },
+//   delete: (id) => axiosInstance.delete(`/api/blogs/${id}`),
+//   getByResume: (resumeId) => axiosInstance.get(`/api/blogs/resume/${resumeId}`),
+//   reorder: (resumeId, orderedIds) =>
+//     axiosInstance.put(`/api/blogs/resume/${resumeId}/reorder`, orderedIds),
+// };
 
 export const publicAPI = {
   getPortfolio: (slug) => axiosInstance.get(`/api/public/portfolios/${slug}`),
@@ -245,21 +245,26 @@ export const layoutAPI = {
 
 // Subscription (user) + Plan catalog (public)
 export const subscriptionAPI = {
-  getMySubscription: () => axiosInstance.get("/api/subscription/me"),
-  getMyPlan: () => axiosInstance.get("/api/subscription/plan"),
-  isActive: () => axiosInstance.get("/api/subscription/active"),
+  // existing
+  getMyPlan:  () => axiosInstance.get("/api/subscription/plan"),
+  isActive:   () => axiosInstance.get("/api/subscription/active"),
+  getDetails: () => axiosInstance.get("/api/subscription/me"),
 };
-
-export const plansAPI = {
-  getActivePlans: () => axiosInstance.get("/api/plans"),
-};
-
+ 
 export const paymentAPI = {
-  initiate: (plan, billingCycle) => axiosInstance.post("/api/payments/initiate", { plan, billingCycle }),
-  confirm: (orderId, transactionRef) => axiosInstance.post("/api/payments/confirm", { orderId, transactionRef }),
-  getHistory: () => axiosInstance.get("/api/payments/history"),
+  initiate: (plan, billingCycle) =>
+    axiosInstance.post("/api/payments/initiate", { plan, billingCycle }),
+  confirm: (orderId, transactionRef) =>
+    axiosInstance.post("/api/payments/confirm", { orderId, transactionRef }),
+  history: () => axiosInstance.get("/api/payments/history"),
 };
-
+ 
+export const planAPI = {
+  getActive: () => axiosInstance.get("/api/plans"),                          // public
+  adminGetAll: () => axiosInstance.get("/api/admin/plans"),                  // admin
+  adminUpdate: (planType, body) =>
+    axiosInstance.put(`/api/admin/plans/${planType}`, body),                 // admin
+};
 export const adminAPI = {
   getAllResumes: () => axiosInstance.get("/api/admin/resumes"),
   getByStatus: (status) => axiosInstance.get(`/api/admin/resumes/status/${status}`),

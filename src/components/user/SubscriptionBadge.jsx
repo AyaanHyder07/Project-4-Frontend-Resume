@@ -64,7 +64,7 @@ export default function SubscriptionBadge() {
       {/* upgrade CTA — only if not premium */}
       {plan !== "PREMIUM" && (
         <button
-          onClick={() => navigate("/settings")}
+          onClick={() => navigate("/upgrade")}
           style={{
             width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap:5,
             padding:"6px 0", borderRadius:7, border:"none", cursor:"pointer",

@@ -11,13 +11,11 @@ import LoginPage    from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 
 // /* ── USER PAGES ── */
-import Dashboard        from "./pages/user/Dashboard";
-import ResumesPage      from "./pages/user/ResumesPage";
-import ResumeEditorPage from "./pages/user/ResumeEditorPage";
-import ResumeCreatePage from "./pages/user/ResumeCreatePage";
-import TemplatesPage    from "./pages/user/TemplatesPage";
-import AnalyticsPage    from "./pages/user/AnalyticsPage";
-import SettingsPage     from "./pages/user/SettingsPage";
+import Dashboard        from "./pages/users/Dashboard";
+
+import TemplatesPage    from "./pages/users/TemplatesPage";
+import AnalyticsPage    from "./pages/users/AnalyticsPage";
+// import SettingsPage     from "./pages/users/SettingsPage";
 
 
 /* ── ADMIN PAGES ── */
@@ -27,13 +25,11 @@ import AdminPendingPage from "./pages/admin/AdminPendingPage";
 
 import AdminLayoutsPage from "./pages/admin/AdminLayoutsPage";
 import AdminThemeBuilderPage from "./pages/admin/AdminThemeBuilderPage";
-// import Dashboard from "./pages/Userss/Dashboard";
-// import ResumesPage from "./pages/Userss/ResumesPage";
-// import ResumeEditorPage from "./pages/Userss/ResumeEditorPage";
-// import TemplatesPage from "./pages/Userss/TemplatesPage";
-// import AnalyticsPage from "./pages/Userss/AnalyticsPage";
-import ContactsPage from "./pages/user/ContactsPage";
-
+import ContactsPage from "./pages/users/ContactsPage";
+import UpgradePlanPage from "./components/user/UpgradePlanPage";
+import AdminPlansPage from "./components/admin/AdminPlansPage";
+import ResumesPage from "./pages/ResumesPage";
+import ResumeEditorPage from "./pages/ResumeEditorPage";
 
 function App() {
   return (
@@ -62,7 +58,10 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
+
+
+
+                    <Route
             path="/resumes"
             element={
               <ProtectedRoute role="ROLE_USER">
@@ -70,22 +69,17 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/resumes/new"
-            element={
-              <ProtectedRoute role="ROLE_USER">
-                <ResumeCreatePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/resumes/:resumeId"
+
+                              <Route
+            path="/resumes/:resumeId/edit"
             element={
               <ProtectedRoute role="ROLE_USER">
                 <ResumeEditorPage />
               </ProtectedRoute>
             }
           />
+
+
           <Route
             path="/templates"
             element={
@@ -107,22 +101,12 @@ function App() {
     <ContactsPage />
   </ProtectedRoute>
 } />
-          {/* <Route
-            path="/analytics/:resumeId"
-            element={
-              <ProtectedRoute role="ROLE_USER">
-                <AnalyticsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute role="ROLE_USER">
-                <SettingsPage />
-              </ProtectedRoute>
-            }
-          /> */}
+          <Route path="/upgrade" element={
+  <ProtectedRoute role="ROLE_USER">
+    <UpgradePlanPage />
+  </ProtectedRoute>
+} />
+
 
 
           {/* ═══════════════════════════════
@@ -170,6 +154,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+                    <Route
+            path="/admin/plans"
+            element={
+              <ProtectedRoute role="ROLE_ADMIN">
+                <AdminPlansPage />
+              </ProtectedRoute>
+            }
+          />
+         
 
           {/* Shortcut redirect */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
