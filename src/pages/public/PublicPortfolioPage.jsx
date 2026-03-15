@@ -13,6 +13,7 @@ const PublicPortfolioPage = () => {
   const [contactForm, setContactForm] = useState({
     senderName: "",
     senderEmail: "",
+    subject: "",
     message: "",
   });
   const [contactSent, setContactSent] = useState(false);
@@ -149,7 +150,7 @@ const PublicPortfolioPage = () => {
   const grainVisible = ef.enableGrain || (bg.type === "GRADIENT" && bg.gradient?.grainy);
 
   const handleContactSubmit = () => {
-    if (!contactForm.senderName || !contactForm.senderEmail || !contactForm.message) {
+    if (!contactForm.senderName || !contactForm.senderEmail || !contactForm.subject || !contactForm.message) {
       setContactError("All fields are required.");
       return;
     }
@@ -184,8 +185,8 @@ const PublicPortfolioPage = () => {
     <>
       {sections?.EXPERIENCE && sections.EXPERIENCE.length > 0 && (
         <Section title="Experience" tc={tc}>
-          {sections.EXPERIENCE.map((e) => (
-            <div key={e.id} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
+          {sections.EXPERIENCE.map((e, i) => (
+            <div key={e.id || i} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
               <div>
                 <strong style={{ color: p, fontSize: "1.1rem" }}>{e.roleTitle || e.role}</strong> @ {e.organizationName || e.company}
               </div>
@@ -202,8 +203,8 @@ const PublicPortfolioPage = () => {
 
       {sections?.EDUCATION && sections.EDUCATION.length > 0 && (
         <Section title="Education" tc={tc}>
-          {sections.EDUCATION.map((e) => (
-            <div key={e.id} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
+          {sections.EDUCATION.map((e, i) => (
+            <div key={e.id || i} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
               <div>
                 <strong style={{ color: p, fontSize: "1.1rem" }}>{e.degree}</strong> — {e.institutionName || e.institution}
               </div>
@@ -218,9 +219,9 @@ const PublicPortfolioPage = () => {
       {sections?.SKILLS && sections.SKILLS.length > 0 && (
         <Section title="Skills" tc={tc}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", ...(layoutType === "MODERN_GRID" ? cardStInner : cardStOuter) }}>
-            {sections.SKILLS.map((s) => (
+            {sections.SKILLS.map((s, i) => (
               <span
-                key={s.id}
+                key={s.id || i}
                 style={{
                   background: cp.tagBackground || acc,
                   color: cp.tagText || "#fff",
@@ -240,8 +241,8 @@ const PublicPortfolioPage = () => {
       {sections?.PROJECTS && sections.PROJECTS.length > 0 && (
         <Section title="Projects" tc={tc}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1rem" }}>
-            {sections.PROJECTS.map((pj) => (
-              <div key={pj.id} style={cardStInner}>
+            {sections.PROJECTS.map((pj, i) => (
+              <div key={pj.id || i} style={cardStInner}>
                 <div>
                   <strong style={{ color: p, fontSize: "1.1rem" }}>{pj.title}</strong>
                 </div>
@@ -261,8 +262,8 @@ const PublicPortfolioPage = () => {
 
       {sections?.CERTIFICATIONS && sections.CERTIFICATIONS.length > 0 && (
         <Section title="Certifications" tc={tc}>
-          {sections.CERTIFICATIONS.map((c) => (
-            <div key={c.id} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
+          {sections.CERTIFICATIONS.map((c, i) => (
+            <div key={c.id || i} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
               <strong style={{ color: p, fontSize: "1.1rem" }}>{c.title}</strong>
               {c.certificateUrl && (
                 <><span style={{ margin: "0 0.5rem" }}>·</span><a href={c.certificateUrl} target="_blank" rel="noreferrer" style={{ color: acc }}>View</a></>
@@ -274,8 +275,8 @@ const PublicPortfolioPage = () => {
 
       {sections?.PUBLICATIONS && sections.PUBLICATIONS.length > 0 && (
         <Section title="Publications" tc={tc}>
-          {sections.PUBLICATIONS.map((pub) => (
-            <div key={pub.id} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
+          {sections.PUBLICATIONS.map((pub, i) => (
+            <div key={pub.id || i} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
               <strong style={{ color: p, fontSize: "1.1rem" }}>{pub.title}</strong> — {pub.publisher}
               {pub.contentUrl && (
                 <><span style={{ margin: "0 0.5rem" }}>·</span><a href={pub.contentUrl} target="_blank" rel="noreferrer" style={{ color: acc }}>Read</a></>
@@ -288,8 +289,8 @@ const PublicPortfolioPage = () => {
       {sections?.TESTIMONIALS && sections.TESTIMONIALS.length > 0 && (
         <Section title="Testimonials" tc={tc}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1rem" }}>
-            {sections.TESTIMONIALS.map((t) => (
-              <div key={t.id} style={cardStInner}>
+            {sections.TESTIMONIALS.map((t, i) => (
+              <div key={t.id || i} style={cardStInner}>
                 <p style={{ fontStyle: "italic", color: ts }}>"{t.testimonialText}"</p>
                 <div style={{ fontWeight: "bold", color: p }}>{t.clientName}</div>
                 <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>{t.clientCompany}</div>
@@ -302,8 +303,8 @@ const PublicPortfolioPage = () => {
       {sections?.SERVICES && sections.SERVICES.length > 0 && (
         <Section title="Services" tc={tc}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem" }}>
-            {sections.SERVICES.map((s) => (
-              <div key={s.id} style={cardStInner}>
+            {sections.SERVICES.map((s, i) => (
+              <div key={s.id || i} style={cardStInner}>
                 <div><strong style={{ color: p, fontSize: "1.1rem" }}>{s.serviceTitle}</strong></div>
                 <p style={{ fontSize: "0.85rem", color: ts }}>{s.description}</p>
                 {s.basePrice && <div style={{ fontWeight: "bold", color: acc }}>{s.currency} {s.basePrice}</div>}
@@ -315,8 +316,8 @@ const PublicPortfolioPage = () => {
 
       {sections?.EXHIBITIONS && sections.EXHIBITIONS.length > 0 && (
         <Section title="Exhibitions & Awards" tc={tc}>
-          {sections.EXHIBITIONS.map((e) => (
-            <div key={e.id} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
+          {sections.EXHIBITIONS.map((e, i) => (
+            <div key={e.id || i} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
               <strong style={{ color: p, fontSize: "1.1rem" }}>{e.title}</strong>
               {e.awardType && <span style={{ fontSize: "0.8rem", opacity: 0.7, color: ts }}> [{e.awardType}]</span>}
               {" — "} {e.eventName} {e.year && `(${e.year})`}
@@ -327,8 +328,8 @@ const PublicPortfolioPage = () => {
 
       {sections?.BLOGS && sections.BLOGS.length > 0 && (
         <Section title="Blog" tc={tc}>
-          {sections.BLOGS.map((b) => (
-            <div key={b.id} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
+          {sections.BLOGS.map((b, i) => (
+            <div key={b.id || i} style={layoutType === "MODERN_GRID" ? cardStInner : cardStOuter}>
               {b.coverImage && (
                 <img src={b.coverImage} alt={b.title} style={{ width: "100%", maxHeight: "160px", objectFit: "cover", marginBottom: "0.5rem", borderRadius: br }} />
               )}
@@ -350,6 +351,7 @@ const PublicPortfolioPage = () => {
               {[
                 { placeholder: "Your Name", key: "senderName", type: "text" },
                 { placeholder: "Your Email", key: "senderEmail", type: "email" },
+                { placeholder: "Subject", key: "subject", type: "text" },
               ].map(({ placeholder, key, type }) => (
                 <div key={key} style={{ marginBottom: "0.8rem" }}>
                   <input
@@ -435,9 +437,12 @@ const PublicPortfolioPage = () => {
     
     switch (layoutType) {
       case "LEFT_SIDEBAR":
+      case "SIDEBAR_LEFT":
       case "RIGHT_SIDEBAR":
+      case "SIDEBAR_RIGHT":
+        const isLeft = layoutType === "LEFT_SIDEBAR" || layoutType === "SIDEBAR_LEFT";
         return (
-          <div style={{ maxWidth, margin: "0 auto", padding, display: "flex", gap: "4rem", alignItems: "flex-start", flexDirection: layoutType === "LEFT_SIDEBAR" ? "row" : "row-reverse" }}>
+          <div style={{ maxWidth, margin: "0 auto", padding, display: "flex", gap: "4rem", alignItems: "flex-start", flexDirection: isLeft ? "row" : "row-reverse" }}>
             <aside style={{ width: lc.sidebarWidth || "320px", flexShrink: 0, position: "sticky", top: "2rem" }}>
                <ProfileView />
             </aside>
@@ -459,6 +464,8 @@ const PublicPortfolioPage = () => {
         );
       }
       case "MODERN_GRID":
+      case "GRID":
+      case "MASONRY":
         return (
           <div style={{ maxWidth, margin: "0 auto", padding }}>
             <div style={{ marginBottom: "3rem" }}><ProfileView /></div>

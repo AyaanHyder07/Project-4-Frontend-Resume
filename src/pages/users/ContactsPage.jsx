@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import UserDashboardLayout from "../../components/user/UserDashboardLayout";
+import { resumeAPI } from "./resumeStudioAPI";
 
 
 /* ─────────────────────────────────────────────────────────────
@@ -294,13 +295,8 @@ function DetailPanel({ msg, actioning, onClose, onMarkStatus, onDelete }) {
    ContactsPage  ← default export, wrapped in UserDashboardLayout
    ───────────────────────────────────────────────────────────── */
 export default function ContactsPage() {
-  /*
-   * resumeId — pull from your auth context / user profile.
-   * Replace localStorage.getItem(...) with e.g.:
-   *   const { user } = useAuth();
-   *   const resumeId = user?.activeResumeId;
-   */
-  const resumeId = localStorage.getItem("activeResumeId") || "";
+  const [resumeId, setResumeId] = useState(() => localStorage.getItem("activeResumeId") || "");
+  const [resumes, setResumes] = useState([]);
 
   const [messages,  setMessages]  = useState([]);
   const [counts,    setCounts]    = useState({});
@@ -343,11 +339,33 @@ export default function ContactsPage() {
     } catch {}
   }, [resumeId]);
 
+  /* ── fetch resumes ── */
+  const fetchResumes = useCallback(async () => {
+    try {
+      const data = await resumeAPI.getAll();
+      setResumes(Array.isArray(data) ? data : []);
+      if (Array.isArray(data) && data.length > 0 && !resumeId) {
+        setResumeId(data[0].id);
+        localStorage.setItem("activeResumeId", data[0].id);
+      }
+    } catch {}
+  }, [resumeId]);
+
+  useEffect(() => {
+    fetchResumes();
+  }, [fetchResumes]);
+
   useEffect(() => {
     fetchInbox();
     fetchUnread();
     setTimeout(() => setMounted(true), 50);
   }, [fetchInbox, fetchUnread]);
+
+  const handleResumeChange = (e) => {
+    const val = e.target.value;
+    setResumeId(val);
+    localStorage.setItem("activeResumeId", val);
+  };
 
   /* ── open message (auto-mark NEW → READ) ── */
   async function openMessage(msg) {
@@ -414,18 +432,43 @@ export default function ContactsPage() {
     return matchF && matchS;
   });
 
-  /* ── topbar right action (Refresh button) ── */
+  /* ── topbar right action (Dropdown + Refresh) ── */
   const rightAction = (
-    <button
-      onClick={() => { fetchInbox(); fetchUnread(); }}
-      style={{
-        display: "flex", alignItems: "center", gap: 7, padding: "8px 16px",
-        background: "#1C1C1C", color: "#F0EDE6", border: "none", borderRadius: 9,
-        fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
-      }}
-    >
-      <Ic.Refresh /> Refresh
-    </button>
+    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+      {resumes.length > 0 && (
+        <select
+          value={resumeId}
+          onChange={handleResumeChange}
+          style={{
+            padding: "8px 12px",
+            background: "#ECEAE2",
+            border: "1px solid #D8D3CA",
+            borderRadius: "9px",
+            fontSize: "13px",
+            color: "#1C1C1C",
+            fontWeight: "500",
+            fontFamily: "'DM Sans', sans-serif",
+            outline: "none",
+            cursor: "pointer",
+          }}
+        >
+          <option value="" disabled>Select Portfolio</option>
+          {resumes.map(r => (
+            <option key={r.id} value={r.id}>{r.title || 'Untitled'} {r.published ? '(Public)' : '(Private)'}</option>
+          ))}
+        </select>
+      )}
+      <button
+        onClick={() => { fetchInbox(); fetchUnread(); }}
+        style={{
+          display: "flex", alignItems: "center", gap: 7, padding: "8px 16px",
+          background: "#1C1C1C", color: "#F0EDE6", border: "none", borderRadius: 9,
+          fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
+        }}
+      >
+        <Ic.Refresh /> Refresh
+      </button>
+    </div>
   );
 
   /* ─────────────────────────────────────────────────────────────

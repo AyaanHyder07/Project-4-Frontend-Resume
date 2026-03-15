@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import AdminDashboardLayout from "../../components/admin/AdminDashboardLayout";
 import { adminThemeAPI } from "../../api/api";
 
@@ -24,6 +24,7 @@ const AdminThemesPage = () => {
   const [editId, setEditId]     = useState(null);
   const [saving, setSaving]     = useState(false);
   const [jsonErr, setJsonErr]   = useState("");
+  const previewRef              = useRef(null);
 
   const load = () => {
     setLoading(true);
@@ -42,11 +43,46 @@ const AdminThemesPage = () => {
     catch { setJsonErr("Invalid JSON"); return false; }
   };
 
-  const handleSave = () => {
+  const capturePreview = async () => {
+    if (!previewRef.current) return null;
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      });
+      const blob = await new Promise((res) => canvas.toBlob(res, "image/png", 0.9));
+      const fd = new FormData();
+      fd.append("file", blob, "theme-preview.png");
+      const res = await fetch("/api/admin/upload/preview?type=theme", {
+        method: "POST",
+        body: fd,
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      const data = await res.json();
+      return data.secureUrl || null;
+    } catch (e) {
+      console.warn("capturePreview failed", e);
+      return null;
+    }
+  };
+
+  const handleSave = async () => {
     if (!form.name.trim()) { alert("Name is required."); return; }
     if (!validateJson(form.themeConfig)) return;
-    const payload = { name: form.name, themeConfig: JSON.parse(form.themeConfig) };
+    
     setSaving(true);
+    notify("Capturing preview...", "blue");
+    const previewImageUrl = await capturePreview();
+
+    const payload = { 
+      name: form.name, 
+      themeConfig: JSON.parse(form.themeConfig),
+      previewImageUrl
+    };
+    
     const call = editId ? adminThemeAPI.update(editId, payload) : adminThemeAPI.create(payload);
     call
       .then(() => { notify(editId ? "Theme updated!" : "Theme created!"); setShowForm(false); setForm(emptyForm); setEditId(null); load(); })
@@ -84,7 +120,7 @@ const AdminThemesPage = () => {
       }
     >
       {toast.msg && (
-        <div className={`rounded-lg px-4 py-2.5 text-sm font-medium mb-5 ${toastCls[toast.type]}`}>{toast.msg}</div>
+        <div className={`rounded-lg px-4 py-2.5 text-sm font-medium mb-5 ${toastCls[toast.type] || "bg-blue-50 text-blue-700 border border-blue-200"}`}>{toast.msg}</div>
       )}
 
       {/* Form */}
@@ -120,7 +156,9 @@ const AdminThemesPage = () => {
           </div>
 
           {/* Live preview */}
-          <ThemePreview configStr={form.themeConfig} />
+          <div ref={previewRef} style={{ padding: "10px", background: "#fff", display: "inline-block", minWidth: "250px" }}>
+            <ThemePreview configStr={form.themeConfig} />
+          </div>
 
           <div className="flex gap-2 mt-5">
             <button onClick={handleSave} disabled={saving}
@@ -146,19 +184,29 @@ const AdminThemesPage = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {themes.map((t) => (
-          <div key={t.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-            <ColorBar config={t.themeConfig} />
-            <div className="p-4">
-              <p className="font-bold text-gray-900">{t.name}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{t.themeConfig?.fontFamily || "—"}</p>
-              <div className="flex gap-2 mt-3">
+          <div key={t.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col">
+            <div className="relative">
+              {t.previewImageUrl ? (
+                <img src={t.previewImageUrl} alt={t.name} className="w-full h-48 object-cover object-top transition-transform duration-500 group-hover:scale-105" />
+              ) : (
+                <div style={{ height: "192px", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
+                  <ColorBar config={t.themeConfig} />
+                </div>
+              )}
+            </div>
+            
+            <div className="p-5 flex flex-col flex-grow">
+              <h3 className="font-bold text-gray-900 text-base mb-1 truncate" title={t.name}>{t.name}</h3>
+              <p className="text-xs text-gray-400 mt-0.5 truncate" title={t.themeConfig?.fontFamily}>{t.themeConfig?.fontFamily || "—"}</p>
+              
+              <div className="mt-auto pt-4 flex gap-2">
                 <button onClick={() => startEdit(t)}
-                  className="px-3 py-1.5 text-xs font-semibold bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="flex-1 py-1.5 text-xs font-semibold bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors"
                 >Edit</button>
                 <button onClick={() => handleDeactivate(t.id)}
-                  className="px-3 py-1.5 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-colors"
+                  className="flex-1 py-1.5 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-colors"
                 >Deactivate</button>
               </div>
             </div>
