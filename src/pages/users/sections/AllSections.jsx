@@ -33,11 +33,21 @@ import {
      featured, visibility(VisibilityType), displayOrder
 ════════════════════════════════════════════════════════════════ */
 
-const PROJECT_STATUS = ["IN_PROGRESS","COMPLETED","ON_HOLD","CANCELLED"].map((v)=>({value:v,label:v.replace(/_/g," ")}));
+const PROJECT_STATUS = ["IN_PROGRESS","COMPLETED","ON_HOLD","PLANNED"].map((v)=>({value:v,label:v.replace(/_/g," ")}));
 const VISIBILITY = [{value:"PUBLIC",label:"Public"},{value:"PRIVATE",label:"Private"}];
 
+const PROJECT_TYPE_TO_ENUM = {
+  "Personal": "PERSONAL",
+  "Academic": "ACADEMIC",
+  "Company": "COMPANY",
+  "Freelance": "FREELANCE",
+  "Open Source": "OPEN_SOURCE",
+  "Research": "RESEARCH",
+  "Other": "PERSONAL" // Fallback
+};
+
 const DEF_PROJ = {
-  title:"", projectType:"", ndaRestricted:false, description:"",
+  title:"", projectType:"Personal", ndaRestricted:false, description:"",
   keyFeatures:"", roleInProject:"", clientName:"", industry:"",
   startDate:"", endDate:"", projectStatus:"COMPLETED",
   technologiesUsed:"", toolsUsed:"", liveUrl:"", sourceCodeUrl:"",
@@ -68,10 +78,24 @@ export function ProjectsSection({ resumeId, onNotify }) {
     setError(null); setSaving(true);
     try {
       const { projectAPI } = await import("../editorAPI");
+      
+      let enumProjectType = "PERSONAL";
+      if (form.projectType) {
+        if (form.projectType === form.projectType.toUpperCase()) {
+            enumProjectType = form.projectType;
+        } else {
+            enumProjectType = PROJECT_TYPE_TO_ENUM[form.projectType] || "PERSONAL";
+        }
+      }
+
       const body = {
         ...form, resumeId,
+        projectType: enumProjectType,
         startDate: form.startDate || null,
         endDate: form.endDate || null,
+        keyFeatures: form.keyFeatures ? form.keyFeatures.split("\n").map(s=>s.trim()).filter(Boolean) : [],
+        technologiesUsed: form.technologiesUsed ? form.technologiesUsed.split(",").map(s=>s.trim()).filter(Boolean) : [],
+        toolsUsed: form.toolsUsed ? form.toolsUsed.split(",").map(s=>s.trim()).filter(Boolean) : [],
       };
       if (editing === "new") { await projectAPI.create(body); }
       else { await projectAPI.update(editing, body); }
@@ -96,12 +120,14 @@ export function ProjectsSection({ resumeId, onNotify }) {
     setForm({
       title:item.title||"", projectType:item.projectType||"",
       ndaRestricted:item.ndaRestricted||false, description:item.description||"",
-      keyFeatures:item.keyFeatures||"", roleInProject:item.roleInProject||"",
+      keyFeatures:item.keyFeatures ? item.keyFeatures.join("\n") : "", 
+      roleInProject:item.roleInProject||"",
       clientName:item.clientName||"", industry:item.industry||"",
       startDate:item.startDate?String(item.startDate):"",
       endDate:item.endDate?String(item.endDate):"",
       projectStatus:item.projectStatus||"COMPLETED",
-      technologiesUsed:item.technologiesUsed||"", toolsUsed:item.toolsUsed||"",
+      technologiesUsed:item.technologiesUsed ? item.technologiesUsed.join(", ") : "", 
+      toolsUsed:item.toolsUsed ? item.toolsUsed.join(", ") : "",
       liveUrl:item.liveUrl||"", sourceCodeUrl:item.sourceCodeUrl||"",
       caseStudyUrl:item.caseStudyUrl||"", featured:item.featured||false,
       visibility:item.visibility||"PUBLIC",
@@ -117,7 +143,9 @@ export function ProjectsSection({ resumeId, onNotify }) {
       <ErrorBox msg={error}/>
       <FormGrid cols={2}>
         <Field label="Project Title" required><Input value={form.title} onChange={(v)=>set("title",v)} placeholder="My Awesome Project"/></Field>
-        <Field label="Project Type"><Input value={form.projectType} onChange={(v)=>set("projectType",v)} placeholder="Web App, Mobile, Design…"/></Field>
+        <Field label="Project Type">
+            <Select value={form.projectType} onChange={(v)=>set("projectType",v)} options={Object.keys(PROJECT_TYPE_TO_ENUM).map((c) => ({ value: c, label: c }))} />
+        </Field>
         <Field label="Industry"><Input value={form.industry} onChange={(v)=>set("industry",v)} placeholder="FinTech, Healthcare…"/></Field>
         <Field label="Client Name"><Input value={form.clientName} onChange={(v)=>set("clientName",v)} placeholder="Acme Corp"/></Field>
         <Field label="Start Date"><Input type="date" value={form.startDate} onChange={(v)=>set("startDate",v)}/></Field>
@@ -270,8 +298,13 @@ export function BlogsSection({ resumeId, onNotify }) {
     setError(null); setSaving(true);
     try {
       const { blogAPI } = await import("../editorAPI");
-      if (editing==="new") { await blogAPI.create({...form, resumeId}, cover); }
-      else { await blogAPI.update(editing, form, cover); }
+      const body = {
+        ...form,
+        resumeId,
+        tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : []
+      };
+      if (editing==="new") { await blogAPI.create(body, cover); }
+      else { await blogAPI.update(editing, body, cover); }
       onNotify("Blog post saved ✓"); setEditing(null); setCover(null); load();
     } catch(e) { setError(e?.message||"Save failed"); }
     finally { setSaving(false); }
@@ -312,12 +345,12 @@ export function BlogsSection({ resumeId, onNotify }) {
   return (
     <div>
       {items.map((item)=>(
-        <ItemCard key={item.id} onEdit={()=>{setForm({title:item.title||"",content:item.content||"",tags:item.tags||"",visibility:item.visibility||"Draft"});setEditing(item.id);}} onDelete={()=>handleDelete(item.id)} deleting={deleting===item.id}>
+        <ItemCard key={item.id} onEdit={()=>{setForm({title:item.title||"",content:item.content||"",tags:item.tags?item.tags.join(", "):"",visibility:item.visibility||"Draft"});setEditing(item.id);}} onDelete={()=>handleDelete(item.id)} deleting={deleting===item.id}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
             <div style={itemTitle}>{item.title}</div>
             <span style={{fontSize:9.5,fontWeight:700,color:item.visibility==="Public"?"#22c55e":"#8A8578",background:item.visibility==="Public"?"rgba(34,197,94,0.1)":"rgba(138,133,120,0.1)",padding:"2px 7px",borderRadius:20,fontFamily:"'DM Sans',sans-serif"}}>{item.visibility}</span>
           </div>
-          {item.tags&&<div style={itemMeta}>🏷 {item.tags}</div>}
+          {item.tags&&<div style={itemMeta}>🏷 {Array.isArray(item.tags) ? item.tags.join(", ") : item.tags}</div>}
           {item.viewCount>0&&<div style={itemMeta}>👁 {item.viewCount} views</div>}
         </ItemCard>
       ))}
@@ -427,7 +460,9 @@ export function TestimonialsSection({ resumeId, onNotify }) {
 ════════════════════════════════════════════════════════════════ */
 
 const PRICING_MODELS = ["FIXED","HOURLY","MONTHLY","PROJECT_BASED","NEGOTIABLE"].map((v)=>({value:v,label:v.replace(/_/g," ")}));
-const DEF_SVC = { serviceTitle:"", serviceCategory:"", description:"", pricingModel:"FIXED", basePrice:"", currency:"INR", duration:"", deliverables:"", targetAudience:"", featured:false, visibility:"PUBLIC" };
+const CURRENCIES = ["INR","USD","EUR","GBP"].map((v)=>({value:v,label:v}));
+const DURATIONS = ["1 hour","2 hours","1 day","3 days","1 week","2 weeks","1 month","3 months","6 months","Ongoing"].map((v)=>({value:v,label:v}));
+const DEF_SVC = { serviceTitle:"", serviceCategory:"", description:"", pricingModel:"FIXED", basePrice:"", currency:"INR", duration:"1 week", deliverables:"", targetAudience:"", featured:false, visibility:"PUBLIC" };
 
 export function ServicesSection({ resumeId, onNotify }) {
   const [items, setItems]   = useState([]);
@@ -453,7 +488,12 @@ export function ServicesSection({ resumeId, onNotify }) {
     setError(null); setSaving(true);
     try {
       const { serviceAPI } = await import("../editorAPI");
-      const body = { ...form, resumeId, basePrice: form.basePrice ? Number(form.basePrice) : null };
+      const body = { 
+        ...form, 
+        resumeId, 
+        basePrice: form.basePrice ? Number(form.basePrice) : null,
+        deliverables: form.deliverables ? form.deliverables.split("\n").map(s=>s.trim()).filter(Boolean) : []
+      };
       if (editing==="new") { await serviceAPI.create(body); }
       else { await serviceAPI.update(editing, body); }
       onNotify("Service saved ✓"); setEditing(null); load();
@@ -483,8 +523,8 @@ export function ServicesSection({ resumeId, onNotify }) {
         <Field label="Category"><Input value={form.serviceCategory} onChange={(v)=>set("serviceCategory",v)} placeholder="Design, Development…"/></Field>
         <Field label="Pricing Model"><Select value={form.pricingModel} onChange={(v)=>set("pricingModel",v)} options={PRICING_MODELS}/></Field>
         <Field label="Base Price"><Input type="number" value={form.basePrice} onChange={(v)=>set("basePrice",v)} placeholder="5000"/></Field>
-        <Field label="Currency"><Input value={form.currency} onChange={(v)=>set("currency",v)} placeholder="INR"/></Field>
-        <Field label="Duration"><Input value={form.duration} onChange={(v)=>set("duration",v)} placeholder="1 week, 3 hours…"/></Field>
+        <Field label="Currency"><Select value={form.currency} onChange={(v)=>set("currency",v)} options={CURRENCIES}/></Field>
+        <Field label="Duration"><Select value={form.duration} onChange={(v)=>set("duration",v)} options={DURATIONS}/></Field>
         <Field label="Visibility"><Select value={form.visibility} onChange={(v)=>set("visibility",v)} options={VISIBILITY}/></Field>
       </FormGrid>
       <Field label="Description"><Textarea value={form.description} onChange={(v)=>set("description",v)} rows={3}/></Field>
@@ -500,7 +540,7 @@ export function ServicesSection({ resumeId, onNotify }) {
   return (
     <div>
       {items.map((item)=>(
-        <ItemCard key={item.id} onEdit={()=>{setForm({serviceTitle:item.serviceTitle||"",serviceCategory:item.serviceCategory||"",description:item.description||"",pricingModel:item.pricingModel||"FIXED",basePrice:item.basePrice||"",currency:item.currency||"INR",duration:item.duration||"",deliverables:item.deliverables||"",targetAudience:item.targetAudience||"",featured:item.featured||false,visibility:item.visibility||"PUBLIC"});setEditing(item.id);}} onDelete={()=>handleDelete(item.id)} deleting={deleting===item.id}>
+        <ItemCard key={item.id} onEdit={()=>{setForm({serviceTitle:item.serviceTitle||"",serviceCategory:item.serviceCategory||"",description:item.description||"",pricingModel:item.pricingModel||"FIXED",basePrice:item.basePrice||"",currency:item.currency||"INR",duration:item.duration||"1 week",deliverables:item.deliverables?item.deliverables.join("\n"):"",targetAudience:item.targetAudience||"",featured:item.featured||false,visibility:item.visibility||"PUBLIC"});setEditing(item.id);}} onDelete={()=>handleDelete(item.id)} deleting={deleting===item.id}>
           <div style={{display:"flex",alignItems:"center",gap:7}}>
             <div style={itemTitle}>{item.serviceTitle}</div>
             {item.featured&&<span style={featBadge}>⭐</span>}
@@ -521,7 +561,7 @@ export function ServicesSection({ resumeId, onNotify }) {
    year: int (not future)
 ════════════════════════════════════════════════════════════════ */
 
-const AWARD_TYPES = ["AWARD","EXHIBITION","GRANT","FELLOWSHIP","RECOGNITION","COMPETITION","OTHER"].map((v)=>({value:v,label:v}));
+const AWARD_TYPES = ["AWARD","EXHIBITION","RECOGNITION","ACHIEVEMENT"].map((v)=>({value:v,label:v}));
 const DEF_EXH = { title:"", eventName:"", location:"", year:new Date().getFullYear(), description:"", awardType:"AWARD" };
 
 export function ExhibitionsSection({ resumeId, onNotify }) {
@@ -579,6 +619,7 @@ export function ExhibitionsSection({ resumeId, onNotify }) {
         <Field label="Event Name"><Input value={form.eventName} onChange={(v)=>set("eventName",v)} placeholder="Cannes Lions 2023"/></Field>
         <Field label="Location"><Input value={form.location} onChange={(v)=>set("location",v)} placeholder="Paris, France"/></Field>
         <Field label="Year" required><Input type="number" value={form.year} onChange={(v)=>set("year",v)}/></Field>
+        <Field label="Visibility"><Select value={form.visibility||"PUBLIC"} onChange={(v)=>set("visibility",v)} options={VISIBILITY}/></Field>
       </FormGrid>
       <Field label="Description"><Textarea value={form.description} onChange={(v)=>set("description",v)} rows={2}/></Field>
       <FormActions onSave={handleSave} onCancel={()=>setEditing(null)} saving={saving}/>
@@ -779,8 +820,8 @@ export function PublicationsSection({ resumeId, onNotify }) {
    public only shows ACTIVE records
 ════════════════════════════════════════════════════════════════ */
 
-const CRED_TYPES = ["CA","CPA","CFA","FRM","CFP","MBA_FINANCE","ACTUARY","SEBI_REGISTERED","AMFI_REGISTERED","CUSTOM"].map((v)=>({value:v,label:v.replace(/_/g," ")}));
-const DEF_FIN = { credentialType:"CA", certificationName:"", licenseNumber:"", issuingAuthority:"", issueDate:"", validTill:"", region:"", verificationUrl:"" };
+const CRED_TYPES = ["LICENSE","REGISTRATION","CERTIFICATION","MEMBERSHIP","COMPLIANCE"].map((v)=>({value:v,label:v.charAt(0) + v.slice(1).toLowerCase()}));
+const DEF_FIN = { credentialType:"CERTIFICATION", certificationName:"", licenseNumber:"", issuingAuthority:"", issueDate:"", validTill:"", region:"", verificationUrl:"" };
 
 export function FinancialSection({ resumeId, onNotify }) {
   const [items, setItems]   = useState([]);
@@ -844,6 +885,7 @@ export function FinancialSection({ resumeId, onNotify }) {
         <Field label="Valid Till" hint="Leave blank = no expiry"><Input type="date" value={form.validTill} onChange={(v)=>set("validTill",v)}/></Field>
         <Field label="Region"><Input value={form.region} onChange={(v)=>set("region",v)} placeholder="India"/></Field>
         <Field label="Verification URL" hint="Or upload proof file below"><Input value={form.verificationUrl} onChange={(v)=>set("verificationUrl",v)} placeholder="https://"/></Field>
+        <Field label="Visibility"><Select value={form.visibility||"PUBLIC"} onChange={(v)=>set("visibility",v)} options={VISIBILITY}/></Field>
       </FormGrid>
       <FileUpload label="Proof Document" accept="image/*,.pdf" onChange={setFile} hint="Upload license/certificate image or PDF"/>
       <FormActions onSave={handleSave} onCancel={()=>{setEditing(null);setFile(null);}} saving={saving}/>
@@ -855,7 +897,7 @@ export function FinancialSection({ resumeId, onNotify }) {
   return (
     <div>
       {items.map((item)=>(
-        <ItemCard key={item.id} onEdit={()=>{setForm({credentialType:item.credentialType||"CA",certificationName:item.certificationName||"",licenseNumber:item.licenseNumber||"",issuingAuthority:item.issuingAuthority||"",issueDate:item.issueDate?String(item.issueDate):"",validTill:item.validTill?String(item.validTill):"",region:item.region||"",verificationUrl:item.verificationUrl||""});setEditing(item.id);}} onDelete={()=>handleDelete(item.id)} deleting={deleting===item.id}>
+        <ItemCard key={item.id} onEdit={()=>{setForm({credentialType:item.credentialType||"CERTIFICATION",certificationName:item.certificationName||"",licenseNumber:item.licenseNumber||"",issuingAuthority:item.issuingAuthority||"",issueDate:item.issueDate?String(item.issueDate):"",validTill:item.validTill?String(item.validTill):"",region:item.region||"",verificationUrl:item.verificationUrl||"", visibility:item.visibility||"PUBLIC"});setEditing(item.id);}} onDelete={()=>handleDelete(item.id)} deleting={deleting===item.id}>
           <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}>
             <div style={itemTitle}>{item.certificationName||item.credentialType}</div>
             <span style={{fontSize:9.5,fontWeight:700,color:item.status==="ACTIVE"?"#22c55e":"#B43C3C",background:item.status==="ACTIVE"?"rgba(34,197,94,0.1)":"rgba(180,60,60,0.1)",padding:"1px 6px",borderRadius:20,fontFamily:"'DM Sans',sans-serif"}}>{item.status}</span>

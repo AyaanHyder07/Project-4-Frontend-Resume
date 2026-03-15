@@ -66,8 +66,8 @@ export function ExperienceSection({ resumeId, onNotify }) {
             endDate: item.endDate ? String(item.endDate) : "",
             currentlyWorking: item.currentlyWorking || false,
             roleDescription: item.roleDescription || "",
-            keyAchievements: item.keyAchievements || "",
-            skillsUsed: item.skillsUsed || "",
+            keyAchievements: item.keyAchievements ? item.keyAchievements.join("\n") : "",
+            skillsUsed: item.skillsUsed ? item.skillsUsed.join(", ") : "",
         });
         setEditing(item.id);
         setError(null);
@@ -81,6 +81,8 @@ export function ExperienceSection({ resumeId, onNotify }) {
                 ...form,
                 resumeId,
                 endDate: form.currentlyWorking ? null : form.endDate || null,
+                keyAchievements: form.keyAchievements ? form.keyAchievements.split("\n").map(s => s.trim()).filter(Boolean) : [],
+                skillsUsed: form.skillsUsed ? form.skillsUsed.split(",").map(s => s.trim()).filter(Boolean) : [],
             };
             if (editing === "new") {
                 await experienceAPI.create(body);
@@ -319,10 +321,17 @@ const PROFICIENCY = [
     { value: "EXPERT", label: "Expert" },
 ];
 
-const SKILL_CATEGORIES = [
-    "Technical", "Design", "Management", "Communication",
-    "Language", "Tool", "Framework", "Soft Skill", "Other",
-];
+const SKILL_CATEGORIES_TO_ENUM = {
+    "Technical": "TECHNICAL",
+    "Design": "DOMAIN", // Grouping design under domain
+    "Management": "SOFT_SKILL",
+    "Communication": "SOFT_SKILL",
+    "Language": "LANGUAGE",
+    "Tool": "TOOL",
+    "Framework": "TOOL", // Grouping frameworks under tool
+    "Soft Skill": "SOFT_SKILL",
+    "Other": "DOMAIN", // Grouping other under domain
+};
 
 export function SkillsSection({ resumeId, onNotify }) {
     const [items, setItems] = useState([]);
@@ -349,7 +358,25 @@ export function SkillsSection({ resumeId, onNotify }) {
         setError(null); setSaving(true);
         try {
             const { skillAPI } = await import("../editorAPI");
-            const body = { ...form, resumeId, yearsOfExperience: form.yearsOfExperience ? Number(form.yearsOfExperience) : null };
+            
+            // Map the frontend display category to the backend enum category
+            // If it's already upper case from backend, use it directly, otherwise map it
+            let enumCategory = "DOMAIN"; 
+            if (form.category) {
+                if (form.category === form.category.toUpperCase()) {
+                   enumCategory = form.category;
+                } else {
+                   enumCategory = SKILL_CATEGORIES_TO_ENUM[form.category] || "DOMAIN";
+                }
+            }
+
+            const body = { 
+                ...form, 
+                resumeId, 
+                category: enumCategory,
+                proficiency: form.proficiency ? form.proficiency.toUpperCase() : "INTERMEDIATE",
+                yearsOfExperience: form.yearsOfExperience ? Number(form.yearsOfExperience) : null 
+            };
             if (editing === "new") { await skillAPI.create(body); }
             else { await skillAPI.update(editing, body); }
             onNotify("Skill saved ✓"); setEditing(null); load();
@@ -390,7 +417,7 @@ export function SkillsSection({ resumeId, onNotify }) {
                     <Input value={form.skillName} onChange={(v) => set("skillName", v)} placeholder="e.g. Figma" />
                 </Field>
                 <Field label="Category">
-                    <Select value={form.category} onChange={(v) => set("category", v)} options={SKILL_CATEGORIES.map((c) => ({ value: c, label: c }))} />
+                    <Select value={form.category} onChange={(v) => set("category", v)} options={Object.keys(SKILL_CATEGORIES_TO_ENUM).map((c) => ({ value: c, label: c }))} />
                 </Field>
                 <Field label="Proficiency">
                     <Select value={form.proficiency} onChange={(v) => set("proficiency", v)} options={PROFICIENCY} />

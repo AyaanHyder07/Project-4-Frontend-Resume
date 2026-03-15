@@ -70,8 +70,8 @@ export default function ProfileSection({ resumeId, onNotify }) {
           whatsapp: p.whatsapp || "",
           linkedinUrl: p.linkedinUrl || "",
           githubUrl: p.githubUrl || "",
-          hobbies: p.hobbies || "",
-          interests: p.interests || "",
+          hobbies: p.hobbies ? p.hobbies.join(", ") : "",
+          interests: p.interests ? p.interests.join(", ") : "",
           achievementsSummary: p.achievementsSummary || "",
         });
       })
@@ -83,11 +83,18 @@ export default function ProfileSection({ resumeId, onNotify }) {
     setError(null);
     setSaving(true);
     try {
+      const payload = {
+        ...form,
+        dateOfBirth: form.dateOfBirth ? form.dateOfBirth : null,
+        hobbies: form.hobbies ? form.hobbies.split(",").map(s => s.trim()).filter(Boolean) : [],
+        interests: form.interests ? form.interests.split(",").map(s => s.trim()).filter(Boolean) : [],
+      };
+
       let saved;
       if (exists) {
-        saved = await profileAPI.update(resumeId, form, photo);
+        saved = await profileAPI.update(resumeId, payload, photo);
       } else {
-        saved = await profileAPI.create(resumeId, form, photo);
+        saved = await profileAPI.create(resumeId, payload, photo);
         setExists(true);
       }
       setData(saved);

@@ -50,6 +50,7 @@ export const sectionAPI = {
 // DELETE /api/profile/{resumeId}
 export const profileAPI = {
   get: (resumeId) => fetch(`/api/profile/${resumeId}`, { headers: h() }).then(ok),
+  getPublic: (resumeId) => fetch(`/api/profile/public/${resumeId}`).then(ok),
   create: (resumeId, data, photoFile) => {
     const fd = new FormData();
     fd.append("data", new Blob([JSON.stringify({ ...data, resumeId })], { type: "application/json" }));

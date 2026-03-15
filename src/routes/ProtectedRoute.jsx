@@ -12,7 +12,15 @@ import { useAuth } from "../auth/AuthContext";
  * AuthContext must expose: { user: { role: "ROLE_USER" | "ROLE_ADMIN" } | null }
  */
 const ProtectedRoute = ({ children, role }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        Loading...
+      </div>
+    );
+  }
 
   // Not logged in → go to login
   if (!user) {
