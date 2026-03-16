@@ -356,19 +356,20 @@ const AUDIENCES = [
 ];
 
 const SECTIONS_ALL = [
-  "PERSONAL_INFO",
-  "SUMMARY",
+  "PROFILE",
   "EXPERIENCE",
   "EDUCATION",
-  "SKILLS",
   "PROJECTS",
+  "PROJECT_GALLERY",
+  "SKILLS",
   "CERTIFICATIONS",
-  "AWARDS",
-  "LANGUAGES",
+  "FINANCIAL_CREDENTIALS",
   "PUBLICATIONS",
-  "VOLUNTEERING",
-  "REFERENCES",
-  "PORTFOLIO",
+  "BLOG_POSTS",
+  "MEDIA_APPEARANCES",
+  "EXHIBITIONS_AWARDS",
+  "TESTIMONIALS",
+  "SERVICE_OFFERINGS",
   "CONTACT",
 ];
 
@@ -453,7 +454,7 @@ const DEF = {
   // layout
   layoutType: "LEFT_SIDEBAR",
   supportedSections: [...SECTIONS_ALL],
-  requiredSections: ["PERSONAL_INFO", "CONTACT"],
+  requiredSections: ["PROFILE", "CONTACT"],
 };
 
 /* ══════════════════════════════════════════════════════════════
@@ -3055,7 +3056,7 @@ export default function AdminThemeStudioPage() {
             {
               zoneId: "header",
               label: "Header",
-              allowedSections: ["PERSONAL_INFO"],
+              allowedSections: ["PROFILE"],
               defaultWidth: "100%",
               optional: false,
               displayOrder: 0,

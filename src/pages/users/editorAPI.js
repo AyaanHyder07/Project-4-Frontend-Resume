@@ -13,11 +13,24 @@ const mh = () => ({
   Authorization: `Bearer ${localStorage.getItem("token")}`,
 });
 
-const ok = (r) => { if (!r.ok) return r.json().then((e) => Promise.reject(e)); return r.json(); };
-const okVoid = (r) => { if (!r.ok) return r.json().then((e) => Promise.reject(e)); };
+const ok = (r) => { 
+  if (r.status === 401) {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+  }
+  if (!r.ok) return r.json().catch(() => ({})).then((e) => Promise.reject(e)); 
+  return r.json(); 
+};
+const okVoid = (r) => { 
+  if (r.status === 401) {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+  }
+  if (!r.ok) return r.json().catch(() => ({})).then((e) => Promise.reject(e)); 
+};
 
 // Add base URL to bypass proxy issues
-const BASE = "http://localhost:8081";
+const BASE = "http://127.0.0.1:8081";
 const origFetch = window.fetch;
 const fetch = (url, options) => origFetch(url.startsWith('/api') ? BASE + url : url, options);
 

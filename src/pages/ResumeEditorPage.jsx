@@ -89,6 +89,7 @@ export default function ResumeEditorPage() {
   const navigate = useNavigate();
 
   const [resume, setResume]       = useState(null);
+  const [dbSections, setDbSections] = useState([]);
   const [activeSection, setActive]= useState("profile");
   const [loading, setLoading]     = useState(true);
   const [userPlan, setUserPlan]   = useState("FREE");
@@ -106,11 +107,23 @@ export default function ResumeEditorPage() {
     Promise.all([
       resumeAPI.getById(resumeId),
       subscriptionAPI.getMyPlan(),
+      sectionAPI.getAll(resumeId)
     ])
-      .then(([r, plan]) => {
+      .then(([r, plan, secs]) => {
         setResume(r);
         setUserPlan(typeof plan === "string" ? plan : "FREE");
-        // userId from JWT stored in localStorage
+        // Convert section response to array
+        const fetchedSecs = Array.isArray(secs?.data || secs) ? (secs.data || secs) : [];
+        setDbSections(fetchedSecs);
+        
+        // Auto-select the first section if "profile" isn't present
+        if (fetchedSecs.length > 0) {
+           const firstSecType = fetchedSecs[0].sectionName?.toLowerCase();
+           // Profile is standard mapped or fallback to first
+           const match = SECTIONS.find(s => s.id === firstSecType || (s.id === "profile" && firstSecType === "personal_info"));
+           if (match) setActive(match.id);
+        }
+
         const uid = localStorage.getItem("userId");
         setUserId(uid);
       })
@@ -281,16 +294,49 @@ export default function ResumeEditorPage() {
           overflowY:"auto",
           display:"flex", flexDirection:"column", gap:3,
         }}>
-          {/* Content sections */}
+          {/* Content sections (mapped to database sections) */}
           <div style={sideLabel}>Content</div>
-          {SECTIONS.map((sec) => (
-            <SideItem
-              key={sec.id}
-              sec={sec}
-              active={activeSection === sec.id}
-              onClick={() => setActive(sec.id)}
-            />
-          ))}
+          
+          {/* ALWAYS show Profile first, as it's mandatory and separate from generic sections API */}
+          <SideItem
+            sec={SECTIONS.find(s => s.id === "profile")}
+            active={activeSection === "profile"}
+            onClick={() => setActive("profile")}
+          />
+
+          {SECTIONS.map((secDef) => {
+            if (secDef.id === "profile") return null;
+
+            // Try to find if this section has a custom title in DB sections
+            // For this, we need to map frontend id back to backend enum, or scan dbSections
+            const enumMapReverse = {
+              "experience": "EXPERIENCE",
+              "education": "EDUCATION",
+              "projects": "PROJECTS",
+              "skills": "SKILLS",
+              "certifications": "CERTIFICATIONS",
+              "financial": "FINANCIAL_CREDENTIALS",
+              "publications": "PUBLICATIONS",
+              "blogs": "BLOG_POSTS",
+              "media": "MEDIA_APPEARANCES",
+              "exhibitions": "EXHIBITIONS_AWARDS",
+              "testimonials": "TESTIMONIALS",
+              "services": "SERVICE_OFFERINGS",
+              "contact": "CONTACT"
+            };
+            const expectedType = enumMapReverse[secDef.id];
+            const dbSec = dbSections.find(d => d.sectionName === expectedType);
+            const label = dbSec?.customTitle || secDef.label;
+
+            return (
+              <SideItem
+                key={secDef.id}
+                sec={{ ...secDef, label }}
+                active={activeSection === secDef.id}
+                onClick={() => setActive(secDef.id)}
+              />
+            );
+          })}
 
           {/* Tools */}
           <div style={{ ...sideLabel, marginTop:12 }}>Tools</div>

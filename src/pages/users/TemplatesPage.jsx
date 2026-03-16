@@ -60,19 +60,39 @@ const TemplatesPage = () => {
         {templates.map((t) => (
           <div
             key={t.id}
-            style={{ border: "1px solid #ccc", padding: "1rem" }}
+            style={{ 
+              border: "1px solid #E5E3DE", 
+              borderRadius: "12px",
+              overflow: "hidden", 
+              background: "#fff",
+              display: "flex",
+              flexDirection: "column"
+            }}
           >
-            {t.thumbnailUrl && (
-              <img
-                src={t.thumbnailUrl}
-                alt={t.name}
-                style={{ width: "100%", height: "140px", objectFit: "cover", marginBottom: "0.5rem" }}
-              />
-            )}
-            <div><strong>{t.name}</strong></div>
-            <div style={{ fontSize: "0.85rem", color: "#555" }}>{t.description}</div>
-            <div style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
-              Plan: {t.planLevel || "FREE"} | Profession: {t.professionTags?.length ? t.professionTags.join(", ") : "Any"}
+            <div style={{ height: "140px", borderBottom: "1px solid #E5E3DE" }}>
+              {t.previewImageUrl ? (
+                <img
+                  src={t.previewImageUrl}
+                  alt={t.name}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                <TemplatePlaceholder template={t} />
+              )}
+            </div>
+            <div style={{ padding: "12px" }}>
+              <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "4px" }}>{t.name}</div>
+              <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px", minHeight: "36px" }}>{t.description}</div>
+              <div style={{ 
+                fontSize: "10px", 
+                backgroundColor: "#F0EDE6", 
+                display: "inline-block",
+                padding: "2px 8px",
+                borderRadius: "12px",
+                fontWeight: 600
+              }}>
+                {t.planLevel || "FREE"}
+              </div>
             </div>
           </div>
         ))}
@@ -80,5 +100,85 @@ const TemplatesPage = () => {
     </UserDashboardLayout>
   );
 };
+
+// Extracted from StepChooseTemplate
+function TemplatePlaceholder({ template }) {
+  const t = template.theme;
+  const l = template.layout;
+
+  const bg = t?.background?.solidColor || t?.colorPalette?.pageBackground || "#F5F3EE";
+  const pri = t?.colorPalette?.primary || "#1C1C1C";
+  const sec = t?.colorPalette?.secondary || "#4A6FA5";
+  const text = t?.colorPalette?.textPrimary || "#1C1C1C";
+  
+  const layoutType = l?.layoutType || "SINGLE_COLUMN";
+  const isTwoCol = layoutType === "TWO_COLUMN" || layoutType === "LEFT_SIDEBAR" || layoutType === "RIGHT_SIDEBAR";
+  const sidebarLeft = layoutType === "LEFT_SIDEBAR";
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        background: bg,
+        display: "flex",
+        flexDirection: "column",
+        padding: 8,
+        gap: 6,
+        boxSizing: "border-box",
+        overflow: "hidden"
+      }}
+    >
+      <div style={{
+        backgroundColor: t?.colorPalette?.surfaceBackground || "transparent",
+        borderRadius: t?.effects?.cardBorderRadius || 0,
+        padding: 8,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: layoutType === "CENTERED" ? "center" : "flex-start",
+        borderBottom: `1px solid ${t?.colorPalette?.dividerColor || 'transparent'}`
+      }}>
+        <div style={{ width: "60%", height: 10, background: pri, borderRadius: 2, marginBottom: 4 }} />
+        <div style={{ width: "40%", height: 5, background: sec, borderRadius: 2 }} />
+      </div>
+
+      <div style={{
+        display: "flex",
+        flexDirection: sidebarLeft ? "row" : (isTwoCol ? "row-reverse" : "column"),
+        gap: 6,
+        flex: 1
+      }}>
+        <div style={{ flex: isTwoCol ? 2 : 1, display: "flex", flexDirection: "column", gap: 5 }}>
+          <div style={{ width: "30%", height: 6, background: pri, borderRadius: 2, opacity: 0.8 }} />
+          {[100, 85, 90].map((w, i) => (
+             <div key={`m1-${i}`} style={{ width: `${w}%`, height: 4, background: text, opacity: 0.3, borderRadius: 2 }} />
+          ))}
+          <div style={{ width: "40%", height: 6, background: pri, borderRadius: 2, opacity: 0.8, marginTop: 4 }} />
+          {[95, 80].map((w, i) => (
+             <div key={`m2-${i}`} style={{ width: `${w}%`, height: 4, background: text, opacity: 0.3, borderRadius: 2 }} />
+          ))}
+        </div>
+
+        {isTwoCol && (
+          <div style={{
+            flex: 1, 
+            display: "flex", 
+            flexDirection: "column", 
+            gap: 5,
+            paddingLeft: sidebarLeft ? 0 : 6,
+            paddingRight: sidebarLeft ? 6 : 0,
+            borderLeft: !sidebarLeft ? `1px solid ${t?.colorPalette?.dividerColor || 'rgba(0,0,0,0.1)'}` : 'none',
+            borderRight: sidebarLeft ? `1px solid ${t?.colorPalette?.dividerColor || 'rgba(0,0,0,0.1)'}` : 'none'
+          }}>
+             <div style={{ width: "60%", height: 6, background: sec, borderRadius: 2, opacity: 0.8 }} />
+             {[70, 60, 80, 50].map((w, i) => (
+                 <div key={`s-${i}`} style={{ width: `${w}%`, height: 4, background: text, opacity: 0.3, borderRadius: 2 }} />
+             ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default TemplatesPage;

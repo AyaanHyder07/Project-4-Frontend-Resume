@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, FileText, Clock,
-  Palette, Layout, LogOut,
+  Palette, Layout, LogOut, LayoutTemplate
 } from "lucide-react";
 import { CreditCard } from "lucide-react";
 // No CSS import — AdminDashboardLayout handles it
@@ -32,6 +32,7 @@ const AdminSidebar = ({ open, setOpen }) => {
         <span className="admin-nav-label">Appearance</span>
         <NavItem to="/admin/themes"  icon={<Palette size={16} />} label="Themes"  onClick={close} />
         <NavItem to="/admin/layouts" icon={<Layout  size={16} />} label="Layouts" onClick={close} />
+        <NavItem to="/admin/templates" icon={<LayoutTemplate size={16} />} label="Templates" onClick={close} />
       </nav>
 
       <span className="admin-nav-label">Billing</span>

@@ -25,6 +25,7 @@ import AdminPendingPage from "./pages/admin/AdminPendingPage";
 
 import AdminLayoutsPage from "./pages/admin/AdminLayoutsPage";
 import AdminThemeBuilderPage from "./pages/admin/AdminThemeBuilderPage";
+import AdminTemplatesPage from "./pages/admin/AdminTemplatesPage";
 import ContactsPage from "./pages/users/ContactsPage";
 import UpgradePlanPage from "./components/user/UpgradePlanPage";
 import AdminPlansPage from "./components/admin/AdminPlansPage";
@@ -151,6 +152,14 @@ function App() {
             element={
               <ProtectedRoute role="ROLE_ADMIN">
                 <AdminLayoutsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/templates"
+            element={
+              <ProtectedRoute role="ROLE_ADMIN">
+                <AdminTemplatesPage />
               </ProtectedRoute>
             }
           />

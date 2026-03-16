@@ -189,7 +189,7 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
                       }}
                     />
                   ) : (
-                    <TemplatePlaceholder name={t.name} mood={t.primaryMood} />
+                    <TemplatePlaceholder template={t} />
                   )}
                   {locked && (
                     <div style={s.lockOverlay}>
@@ -242,93 +242,90 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
   );
 }
 
-/** Placeholder shown when previewImageUrl is null (before html2canvas) */
-function TemplatePlaceholder({ name, mood }) {
-  const moodColors = {
-    CLEAN_MINIMAL: { bg: "#F5F3EE", pri: "#1C1C1C", acc: "#4A6FA5" },
-    BOLD_VIBRANT: { bg: "#0f172a", pri: "#e2e8f0", acc: "#38bdf8" },
-    DARK_DRAMATIC: { bg: "#0a0a10", pri: "#f0f0ff", acc: "#ff2d78" },
-    LUXURY_ELEGANT: { bg: "#FEFCE8", pri: "#713f12", acc: "#d97706" },
-    CORPORATE_FORMAL: { bg: "#F0F4F8", pri: "#1e3a5f", acc: "#0284c7" },
-    ARTISTIC_EXPRESSIVE: { bg: "#FAF5FF", pri: "#4c1d95", acc: "#a78bfa" },
-    FUTURISTIC_TECH: { bg: "#0a0a10", pri: "#00f5d4", acc: "#8b5cf6" },
-  };
-  const c = moodColors[mood] || moodColors["CLEAN_MINIMAL"];
+/** Dynamically renders from attached layout/theme data */
+function TemplatePlaceholder({ template }) {
+  const t = template.theme;
+  const l = template.layout;
+
+  // Fallbacks if data is still syncing
+  const bg = t?.background?.solidColor || t?.colorPalette?.pageBackground || "#F5F3EE";
+  const pri = t?.colorPalette?.primary || "#1C1C1C";
+  const sec = t?.colorPalette?.secondary || "#4A6FA5";
+  const text = t?.colorPalette?.textPrimary || "#1C1C1C";
+  
+  const layoutType = l?.layoutType || "SINGLE_COLUMN";
+
+  // Different mini-renderings based on layout type
+  const isTwoCol = layoutType === "TWO_COLUMN" || layoutType === "LEFT_SIDEBAR" || layoutType === "RIGHT_SIDEBAR";
+  const sidebarLeft = layoutType === "LEFT_SIDEBAR";
 
   return (
     <div
       style={{
         width: "100%",
         height: "100%",
-        background: c.bg,
+        background: bg,
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 10,
-        gap: 6,
+        padding: 6,
+        gap: 4,
+        boxSizing: "border-box",
+        overflow: "hidden"
       }}
     >
-      {/* Simulated resume layout */}
-      <div
-        style={{
-          width: "80%",
-          height: 10,
-          background: c.pri,
-          borderRadius: 3,
-          opacity: 0.8,
-        }}
-      />
-      <div
-        style={{
-          width: "55%",
-          height: 5,
-          background: c.acc,
-          borderRadius: 2,
-          opacity: 0.7,
-        }}
-      />
-      <div style={{ display: "flex", gap: 5, width: "80%", marginTop: 4 }}>
-        <div
-          style={{
-            width: "35%",
-            background: c.acc + "33",
-            borderRadius: 3,
-            height: 40,
-          }}
-        />
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-          }}
-        >
-          {[100, 75, 88, 60].map((w, i) => (
-            <div
-              key={i}
-              style={{
-                width: w + "%",
-                height: 4,
-                background: c.pri,
-                borderRadius: 2,
-                opacity: 0.3 + i * 0.1,
-              }}
-            />
+      {/* Header Block */}
+      <div style={{
+        backgroundColor: t?.colorPalette?.surfaceBackground || "transparent",
+        borderRadius: t?.effects?.cardBorderRadius || 0,
+        padding: 6,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: layoutType === "CENTERED" ? "center" : "flex-start",
+        borderBottom: `1px solid ${t?.colorPalette?.dividerColor || 'transparent'}`
+      }}>
+        <div style={{ width: "60%", height: 8, background: pri, borderRadius: 2, marginBottom: 4 }} />
+        <div style={{ width: "40%", height: 4, background: sec, borderRadius: 2 }} />
+      </div>
+
+      {/* Body Block */}
+      <div style={{
+        display: "flex",
+        flexDirection: sidebarLeft ? "row" : (isTwoCol ? "row-reverse" : "column"),
+        gap: 4,
+        flex: 1
+      }}>
+        
+        {/* Main Content Area */}
+        <div style={{ flex: isTwoCol ? 2 : 1, display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ width: "30%", height: 5, background: pri, borderRadius: 2, opacity: 0.8 }} />
+          {[100, 85, 90].map((w, i) => (
+             <div key={`m1-${i}`} style={{ width: `${w}%`, height: 3, background: text, opacity: 0.3, borderRadius: 1 }} />
+          ))}
+          <div style={{ width: "40%", height: 5, background: pri, borderRadius: 2, opacity: 0.8, marginTop: 2 }} />
+          {[95, 80].map((w, i) => (
+             <div key={`m2-${i}`} style={{ width: `${w}%`, height: 3, background: text, opacity: 0.3, borderRadius: 1 }} />
           ))}
         </div>
-      </div>
-      <div
-        style={{
-          fontSize: 8,
-          color: c.pri,
-          opacity: 0.5,
-          fontFamily: "'DM Sans',sans-serif",
-          marginTop: 4,
-        }}
-      >
-        {name}
+
+        {/* Sidebar / Secondary Area */}
+        {isTwoCol && (
+          <div style={{
+            flex: 1, 
+            display: "flex", 
+            flexDirection: "column", 
+            gap: 4,
+            paddingLeft: sidebarLeft ? 0 : 4,
+            paddingRight: sidebarLeft ? 4 : 0,
+            borderLeft: !sidebarLeft ? `1px solid ${t?.colorPalette?.dividerColor || 'rgba(0,0,0,0.1)'}` : 'none',
+            borderRight: sidebarLeft ? `1px solid ${t?.colorPalette?.dividerColor || 'rgba(0,0,0,0.1)'}` : 'none'
+          }}>
+             <div style={{ width: "60%", height: 5, background: sec, borderRadius: 2, opacity: 0.8 }} />
+             {[70, 60, 80, 50].map((w, i) => (
+                 <div key={`s-${i}`} style={{ width: `${w}%`, height: 3, background: text, opacity: 0.3, borderRadius: 1 }} />
+             ))}
+          </div>
+        )}
+
       </div>
     </div>
   );
