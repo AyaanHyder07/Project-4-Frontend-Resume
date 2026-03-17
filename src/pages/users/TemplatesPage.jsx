@@ -14,6 +14,7 @@ const TemplatesPage = () => {
   const load = () => {
     setLoading(true);
     setError("");
+
     const call = profession
       ? templateAPI.getByProfession(profession)
       : templateAPI.getAvailable();
@@ -24,95 +25,113 @@ const TemplatesPage = () => {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [plan]);
+  useEffect(() => {
+    load();
+  }, [plan]);
 
   return (
-    <UserDashboardLayout title="Templates" subtitle="Browse and apply templates">
-      {/* Filters */}
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-        <div>
-          <label>Plan</label><br />
-          <select value={plan} onChange={(e) => setPlan(e.target.value)}>
-            {PLAN_OPTIONS.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label>Profession (optional)</label><br />
-          <input
-            value={profession}
-            onChange={(e) => setProfession(e.target.value)}
-            placeholder="e.g. DESIGNER"
-          />
-        </div>
-        <div style={{ alignSelf: "flex-end" }}>
-          <button onClick={load}>Search</button>
-        </div>
-      </div>
+    <UserDashboardLayout title="Templates" subtitle="Curated presentation options">
+      <div className="page-shell">
+        <section className="page-hero">
+          <div className="page-eyebrow">Template Library</div>
+          <h2 className="page-title">Browse premium compositions for different careers.</h2>
+          <p className="page-lead">
+            Filter by plan or profession, then compare polished layouts designed to
+            keep your work clean, premium, and readable.
+          </p>
+        </section>
 
-      {loading && <p>Loading templates...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      {!loading && templates.length === 0 && <p>No templates found.</p>}
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1rem" }}>
-        {templates.map((t) => (
-          <div
-            key={t.id}
-            style={{ 
-              border: "1px solid #E5E3DE", 
-              borderRadius: "12px",
-              overflow: "hidden", 
-              background: "#fff",
-              display: "flex",
-              flexDirection: "column"
-            }}
-          >
-            <div style={{ height: "140px", borderBottom: "1px solid #E5E3DE" }}>
-              {t.previewImageUrl ? (
-                <img
-                  src={t.previewImageUrl}
-                  alt={t.name}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              ) : (
-                <TemplatePlaceholder template={t} />
-              )}
+        <section className="premium-panel">
+          <div className="premium-filter-row">
+            <div className="premium-field">
+              <label>Plan</label>
+              <select value={plan} onChange={(e) => setPlan(e.target.value)}>
+                {PLAN_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div style={{ padding: "12px" }}>
-              <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "4px" }}>{t.name}</div>
-              <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px", minHeight: "36px" }}>{t.description}</div>
-              <div style={{ 
-                fontSize: "10px", 
-                backgroundColor: "#F0EDE6", 
-                display: "inline-block",
-                padding: "2px 8px",
-                borderRadius: "12px",
-                fontWeight: 600
-              }}>
-                {t.planLevel || "FREE"}
-              </div>
+            <div className="premium-field">
+              <label>Profession</label>
+              <input
+                placeholder="e.g. DESIGNER"
+                value={profession}
+                onChange={(e) => setProfession(e.target.value)}
+              />
+            </div>
+            <div className="premium-field" style={{ alignSelf: "end" }}>
+              <button className="premium-btn primary" onClick={load}>
+                Refine Selection
+              </button>
             </div>
           </div>
-        ))}
+        </section>
+
+        {loading && <section className="premium-panel"><p className="premium-muted">Loading templates...</p></section>}
+        {error && <section className="premium-panel"><p className="premium-muted" style={{ color: "var(--wine)" }}>{error}</p></section>}
+
+        {!loading && !error && templates.length === 0 ? (
+          <section className="premium-panel">
+            <div className="premium-empty">
+              <h3 style={{ marginBottom: 10, fontSize: "1.6rem" }}>No templates found</h3>
+              <p>Try a different profession or broaden the filter.</p>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="premium-grid cards">
+          {templates.map((template) => (
+            <article className="premium-card" key={template.id}>
+              <div
+                style={{
+                  height: 220,
+                  overflow: "hidden",
+                  borderRadius: 20,
+                  border: "1px solid rgba(163, 132, 78, 0.12)",
+                  background: "rgba(255,255,255,0.5)",
+                  marginBottom: 18,
+                }}
+              >
+                {template.previewImageUrl ? (
+                  <img
+                    alt={template.name}
+                    src={template.previewImageUrl}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                ) : (
+                  <TemplatePlaceholder template={template} />
+                )}
+              </div>
+              <div className="page-actions" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.45rem" }}>{template.name}</h3>
+                  <p className="premium-muted" style={{ marginTop: 8 }}>
+                    {template.description || "A refined template ready for professional use."}
+                  </p>
+                </div>
+                <span className="premium-badge status-tone-info">{template.planLevel || plan}</span>
+              </div>
+            </article>
+          ))}
+        </section>
       </div>
     </UserDashboardLayout>
   );
 };
 
-// Extracted from StepChooseTemplate
 function TemplatePlaceholder({ template }) {
-  const t = template.theme;
-  const l = template.layout;
+  const theme = template.theme;
+  const layout = template.layout;
 
-  const bg = t?.background?.solidColor || t?.colorPalette?.pageBackground || "#F5F3EE";
-  const pri = t?.colorPalette?.primary || "#1C1C1C";
-  const sec = t?.colorPalette?.secondary || "#4A6FA5";
-  const text = t?.colorPalette?.textPrimary || "#1C1C1C";
-  
-  const layoutType = l?.layoutType || "SINGLE_COLUMN";
-  const isTwoCol = layoutType === "TWO_COLUMN" || layoutType === "LEFT_SIDEBAR" || layoutType === "RIGHT_SIDEBAR";
+  const bg = theme?.background?.solidColor || theme?.colorPalette?.pageBackground || "#F5F3EE";
+  const pri = theme?.colorPalette?.primary || "#1C1C1C";
+  const sec = theme?.colorPalette?.secondary || "#A3844E";
+  const text = theme?.colorPalette?.textPrimary || "#1C1C1C";
+
+  const layoutType = layout?.layoutType || "SINGLE_COLUMN";
+  const isTwoCol = ["TWO_COLUMN", "LEFT_SIDEBAR", "RIGHT_SIDEBAR"].includes(layoutType);
   const sidebarLeft = layoutType === "LEFT_SIDEBAR";
 
   return (
@@ -123,59 +142,62 @@ function TemplatePlaceholder({ template }) {
         background: bg,
         display: "flex",
         flexDirection: "column",
-        padding: 8,
-        gap: 6,
-        boxSizing: "border-box",
-        overflow: "hidden"
+        padding: 14,
+        gap: 8,
       }}
     >
-      <div style={{
-        backgroundColor: t?.colorPalette?.surfaceBackground || "transparent",
-        borderRadius: t?.effects?.cardBorderRadius || 0,
-        padding: 8,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: layoutType === "CENTERED" ? "center" : "flex-start",
-        borderBottom: `1px solid ${t?.colorPalette?.dividerColor || 'transparent'}`
-      }}>
-        <div style={{ width: "60%", height: 10, background: pri, borderRadius: 2, marginBottom: 4 }} />
-        <div style={{ width: "40%", height: 5, background: sec, borderRadius: 2 }} />
+      <div
+        style={{
+          padding: 12,
+          borderRadius: 16,
+          background: "rgba(255,255,255,0.36)",
+          borderBottom: `1px solid ${theme?.colorPalette?.dividerColor || "rgba(0,0,0,0.08)"}`,
+        }}
+      >
+        <div style={{ width: "62%", height: 12, borderRadius: 999, background: pri, marginBottom: 6 }} />
+        <div style={{ width: "38%", height: 6, borderRadius: 999, background: sec }} />
       </div>
 
-      <div style={{
-        display: "flex",
-        flexDirection: sidebarLeft ? "row" : (isTwoCol ? "row-reverse" : "column"),
-        gap: 6,
-        flex: 1
-      }}>
-        <div style={{ flex: isTwoCol ? 2 : 1, display: "flex", flexDirection: "column", gap: 5 }}>
-          <div style={{ width: "30%", height: 6, background: pri, borderRadius: 2, opacity: 0.8 }} />
-          {[100, 85, 90].map((w, i) => (
-             <div key={`m1-${i}`} style={{ width: `${w}%`, height: 4, background: text, opacity: 0.3, borderRadius: 2 }} />
-          ))}
-          <div style={{ width: "40%", height: 6, background: pri, borderRadius: 2, opacity: 0.8, marginTop: 4 }} />
-          {[95, 80].map((w, i) => (
-             <div key={`m2-${i}`} style={{ width: `${w}%`, height: 4, background: text, opacity: 0.3, borderRadius: 2 }} />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: sidebarLeft ? "row" : isTwoCol ? "row-reverse" : "column",
+          gap: 8,
+          flex: 1,
+        }}
+      >
+        <div style={{ flex: isTwoCol ? 2 : 1, display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ width: "36%", height: 7, borderRadius: 999, background: pri, opacity: 0.85 }} />
+          {[100, 88, 92, 76].map((width, index) => (
+            <div
+              key={`main-${index}`}
+              style={{ width: `${width}%`, height: 5, borderRadius: 999, background: text, opacity: 0.26 }}
+            />
           ))}
         </div>
 
-        {isTwoCol && (
-          <div style={{
-            flex: 1, 
-            display: "flex", 
-            flexDirection: "column", 
-            gap: 5,
-            paddingLeft: sidebarLeft ? 0 : 6,
-            paddingRight: sidebarLeft ? 6 : 0,
-            borderLeft: !sidebarLeft ? `1px solid ${t?.colorPalette?.dividerColor || 'rgba(0,0,0,0.1)'}` : 'none',
-            borderRight: sidebarLeft ? `1px solid ${t?.colorPalette?.dividerColor || 'rgba(0,0,0,0.1)'}` : 'none'
-          }}>
-             <div style={{ width: "60%", height: 6, background: sec, borderRadius: 2, opacity: 0.8 }} />
-             {[70, 60, 80, 50].map((w, i) => (
-                 <div key={`s-${i}`} style={{ width: `${w}%`, height: 4, background: text, opacity: 0.3, borderRadius: 2 }} />
-             ))}
+        {isTwoCol ? (
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              borderLeft: !sidebarLeft ? "1px solid rgba(0,0,0,0.08)" : "none",
+              borderRight: sidebarLeft ? "1px solid rgba(0,0,0,0.08)" : "none",
+              paddingLeft: sidebarLeft ? 0 : 8,
+              paddingRight: sidebarLeft ? 8 : 0,
+            }}
+          >
+            <div style={{ width: "58%", height: 7, borderRadius: 999, background: sec, opacity: 0.85 }} />
+            {[70, 58, 80, 46].map((width, index) => (
+              <div
+                key={`side-${index}`}
+                style={{ width: `${width}%`, height: 5, borderRadius: 999, background: text, opacity: 0.22 }}
+              />
+            ))}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

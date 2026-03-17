@@ -5,6 +5,7 @@ import App from './App';
 import { AuthProvider } from './auth/AuthContext';
 import './styles/globals.css';
 import './styles/components.css';
+import './styles/premium-pages.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

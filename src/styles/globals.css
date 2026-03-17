@@ -12,10 +12,17 @@
   --cream:       #F5F0E8;
   --cream-dark:  #EDE8DF;
   --cream-card:  #FAF7F2;
+  --paper:       #F8F4EC;
+  --paper-deep:  #E7DED0;
   --charcoal:    #1C1C1C;
   --charcoal-lt: #2E2E2E;
   --olive:       #4A5240;
   --olive-lt:    #6B7560;
+  --forest:      #2F3A2C;
+  --forest-soft: #586250;
+  --gold:        #A3844E;
+  --gold-soft:   #C7AA72;
+  --wine:        #6E3B35;
   --muted:       #8A8578;
   --muted-lt:    #B5AFA5;
   --border:      #D6D0C4;
@@ -90,7 +97,9 @@ html {
 
 body {
   font-family: var(--font-body);
-  background: var(--cream);
+  background:
+    radial-gradient(circle at top, rgba(163, 132, 78, 0.08), transparent 32%),
+    linear-gradient(180deg, #f8f4ec 0%, #f2ece2 52%, #efe7db 100%);
   color: var(--charcoal);
   min-height: 100vh;
   line-height: 1.6;
@@ -195,6 +204,17 @@ a:focus-visible {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 var(--space-40);
+}
+
+::selection {
+  background: rgba(163, 132, 78, 0.2);
+  color: var(--charcoal);
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 var(--space-20);
+  }
 }
 
 /* ── KEYFRAMES ── */

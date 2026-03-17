@@ -9,74 +9,86 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    adminAPI.getAllResumes()
+    adminAPI
+      .getAllResumes()
       .then((res) => setResumes(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const counts = {
-    total:     resumes.length,
-    pending:   resumes.filter((r) => r.approvalStatus === "PENDING").length,
-    approved:  resumes.filter((r) => r.approvalStatus === "APPROVED").length,
-    rejected:  resumes.filter((r) => r.approvalStatus === "REJECTED").length,
-    published: resumes.filter((r) => r.published).length,
+    total: resumes.length,
+    pending: resumes.filter((resume) => resume.approvalStatus === "PENDING").length,
+    approved: resumes.filter((resume) => resume.approvalStatus === "APPROVED").length,
+    rejected: resumes.filter((resume) => resume.approvalStatus === "REJECTED").length,
+    published: resumes.filter((resume) => resume.published).length,
   };
 
   return (
     <AdminDashboardLayout title="Dashboard" subtitle="System overview">
-      {loading && <p className="text-gray-400 text-sm">Loading...</p>}
+      <div className="page-shell">
+        <section className="page-hero">
+          <div className="page-eyebrow">Admin Overview</div>
+          <h2 className="page-title">A calmer control room for the platform.</h2>
+          <p className="page-lead">
+            Review submissions, publication status, and the overall health of the
+            resume library from one polished admin view.
+          </p>
+          <div className="page-actions" style={{ marginTop: 22 }}>
+            <button className="premium-btn primary" onClick={() => navigate("/admin/pending")}>
+              Review Pending
+            </button>
+            <button className="premium-btn secondary" onClick={() => navigate("/admin/resumes")}>
+              All Resumes
+            </button>
+          </div>
+        </section>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
-        <StatCard label="Total"     value={counts.total}     color="border-gray-300" />
-        <StatCard label="Pending"   value={counts.pending}   color="border-yellow-400" textColor="text-yellow-500" clickable onClick={() => navigate("/admin/pending")} />
-        <StatCard label="Approved"  value={counts.approved}  color="border-green-400"  textColor="text-green-500" />
-        <StatCard label="Rejected"  value={counts.rejected}  color="border-red-400"    textColor="text-red-500" />
-        <StatCard label="Published" value={counts.published} color="border-blue-400"   textColor="text-blue-500" />
-      </div>
+        {loading ? (
+          <section className="premium-panel">
+            <p className="premium-muted">Loading dashboard...</p>
+          </section>
+        ) : (
+          <>
+            <section className="premium-grid metrics">
+              <KpiCard label="Total" value={counts.total} tone="status-tone-neutral" />
+              <KpiCard label="Pending" value={counts.pending} tone="status-tone-warn" />
+              <KpiCard label="Approved" value={counts.approved} tone="status-tone-success" />
+              <KpiCard label="Rejected" value={counts.rejected} tone="status-tone-danger" />
+              <KpiCard label="Published" value={counts.published} tone="status-tone-info" />
+            </section>
 
-      {/* Quick actions */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Quick Actions
-        </h2>
-        <div className="flex flex-wrap gap-3">
-          <Btn primary onClick={() => navigate("/admin/pending")}>
-            Review Pending ({counts.pending})
-          </Btn>
-          <Btn onClick={() => navigate("/admin/resumes")}>All Resumes</Btn>
-          <Btn onClick={() => navigate("/admin/themes")}>Manage Themes</Btn>
-          <Btn onClick={() => navigate("/admin/layouts")}>Manage Layouts</Btn>
-        </div>
+            <section className="premium-panel">
+              <div className="page-eyebrow">Quick Actions</div>
+              <h3 style={{ margin: 0, fontSize: "2rem" }}>Move through admin tasks with less friction</h3>
+              <div className="panel-actions" style={{ marginTop: 20 }}>
+                <button className="premium-btn primary" onClick={() => navigate("/admin/pending")}>
+                  Review Pending ({counts.pending})
+                </button>
+                <button className="premium-btn secondary" onClick={() => navigate("/admin/resumes")}>
+                  Resume Library
+                </button>
+                <button className="premium-btn secondary" onClick={() => navigate("/admin/themes")}>
+                  Theme Builder
+                </button>
+                <button className="premium-btn ghost" onClick={() => navigate("/admin/layouts")}>
+                  Layouts
+                </button>
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </AdminDashboardLayout>
   );
 };
 
-const StatCard = ({ label, value, color, textColor = "text-gray-900", clickable, onClick }) => (
-  <div
-    onClick={onClick}
-    className={`bg-white rounded-xl border-t-4 ${color} border border-gray-200 p-5
-      ${clickable ? "cursor-pointer hover:shadow-md transition-shadow" : ""}
-    `}
-  >
-    <div className={`text-3xl font-extrabold tracking-tight ${textColor}`}>{value}</div>
-    <div className="text-xs text-gray-400 font-medium mt-1 uppercase tracking-wide">{label}</div>
-  </div>
-);
-
-const Btn = ({ children, onClick, primary }) => (
-  <button
-    onClick={onClick}
-    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-      primary
-        ? "bg-blue-600 text-white hover:bg-blue-700"
-        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-    }`}
-  >
-    {children}
-  </button>
+const KpiCard = ({ label, value, tone }) => (
+  <article className="premium-card kpi">
+    <span className="premium-meta">{label}</span>
+    <strong className="premium-kpi-value">{value}</strong>
+    <span className={`premium-badge ${tone}`}>{label} status</span>
+  </article>
 );
 
 export default AdminDashboard;

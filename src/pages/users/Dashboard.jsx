@@ -1,151 +1,23 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle,
+  Clock3,
+  Edit3,
+  Eye,
+  Globe,
+  Plus,
+} from "lucide-react";
 import UserDashboardLayout from "../../components/user/UserDashboardLayout";
 import { dashboardAPI } from "../../api/api";
-import {
-  FileText, Eye, Globe, Clock, CheckCircle, AlertCircle,
-  Plus, ArrowRight, TrendingUp, Zap, MoreHorizontal,
-  ExternalLink, Edit3, Trash2
-} from "lucide-react";
 
 const STATUS = {
-  DRAFT:    { label: "Draft",    color: "#8A8578", bg: "rgba(138,133,120,0.13)", Icon: Clock },
-  PENDING:  { label: "Pending",  color: "#C9963A", bg: "rgba(201,150,58,0.13)",  Icon: AlertCircle },
-  APPROVED: { label: "Approved", color: "#3A7D44", bg: "rgba(58,125,68,0.13)",   Icon: CheckCircle },
-};
-
-const PLAN = {
-  FREE:    { color: "#8A8578", bg: "rgba(138,133,120,0.13)" },
-  BASIC:   { color: "#1C6EA4", bg: "rgba(28,110,164,0.13)" },
-  PRO:     { color: "#7B3FA0", bg: "rgba(123,63,160,0.13)" },
-  PREMIUM: { color: "#C9963A", bg: "rgba(201,150,58,0.13)" },
-};
-
-const css = {
-  btnPrimary: {
-    background: "#007bff",
-    color: "#fff",
-    border: "none",
-    padding: "0.5rem 1rem",
-    borderRadius: "4px",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-  },
-  summaryGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "1rem",
-    marginBottom: "2rem",
-  },
-  card: {
-    background: "#fff",
-    border: "1px solid #ddd",
-    borderRadius: "8px",
-    padding: "1rem",
-    textAlign: "center",
-  },
-  cardValue: {
-    fontSize: "2rem",
-    fontWeight: "bold",
-    color: "#333",
-  },
-  cardLabel: {
-    color: "#666",
-    marginTop: "0.5rem",
-  },
-  section: {
-    marginBottom: "2rem",
-  },
-  sectionTitle: {
-    fontSize: "1.5rem",
-    marginBottom: "1rem",
-  },
-  resumeGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-    gap: "1rem",
-  },
-  resumeCard: {
-    background: "#fff",
-    border: "1px solid #ddd",
-    borderRadius: "8px",
-    padding: "1rem",
-  },
-  resumeHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "0.5rem",
-  },
-  resumeTitle: {
-    margin: 0,
-    fontSize: "1.2rem",
-  },
-  statusBadge: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.25rem",
-    padding: "0.25rem 0.5rem",
-    borderRadius: "4px",
-    fontSize: "0.8rem",
-  },
-  resumeMeta: {
-    color: "#666",
-    marginBottom: "1rem",
-  },
-  resumeActions: {
-    display: "flex",
-    gap: "0.5rem",
-    marginBottom: "1rem",
-  },
-  link: {
-    color: "#007bff",
-    textDecoration: "none",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.25rem",
-  },
-  btnSecondary: {
-    background: "#6c757d",
-    color: "#fff",
-    border: "none",
-    padding: "0.25rem 0.5rem",
-    borderRadius: "4px",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.25rem",
-  },
-  resumeStats: {
-    display: "flex",
-    justifyContent: "space-between",
-    color: "#666",
-    fontSize: "0.8rem",
-  },
-  completionBanner: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    background: "#fff3cd",
-    border: "1px solid #ffeaa7",
-    borderRadius: "4px",
-    padding: "0.5rem",
-    marginBottom: "1rem",
-    color: "#856404",
-    fontSize: "0.9rem",
-  },
-  btnComplete: {
-    background: "#28a745",
-    color: "#fff",
-    border: "none",
-    padding: "0.25rem 0.5rem",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontSize: "0.8rem",
-    marginLeft: "auto",
-  },
+  DRAFT: { label: "Draft", className: "status-tone-neutral", Icon: Clock3 },
+  PENDING: { label: "Pending", className: "status-tone-warn", Icon: AlertCircle },
+  APPROVED: { label: "Approved", className: "status-tone-success", Icon: CheckCircle },
+  REJECTED: { label: "Rejected", className: "status-tone-danger", Icon: AlertCircle },
 };
 
 export default function Dashboard() {
@@ -162,91 +34,169 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <UserDashboardLayout title="Dashboard" subtitle="Welcome back"><p>Loading...</p></UserDashboardLayout>;
-  if (error) return <UserDashboardLayout title="Dashboard" subtitle="Welcome back"><p style={{ color: "red" }}>{error}</p></UserDashboardLayout>;
-
-  const d = data;
-  const planCfg = PLAN[d.plan] ?? PLAN.FREE;
-  const canCreate = d.totalResumes < d.resumeLimit;
+  const d = data ?? {};
+  const recent = d.recentResumes ?? [];
+  const canCreate = (d.totalResumes ?? 0) < (d.resumeLimit ?? Infinity);
 
   return (
     <UserDashboardLayout
       title="Dashboard"
-      subtitle="Welcome back"
+      subtitle="Premium command center"
       rightAction={
-        canCreate && (
-          <button style={css.btnPrimary} onClick={() => navigate("/resumes/new")}>
-            <Plus size={14}/> New Resume
+        canCreate ? (
+          <button className="premium-btn primary" onClick={() => navigate("/resumes")}>
+            <Plus size={14} />
+            New Portfolio
           </button>
-        )
+        ) : null
       }
     >
-      {/* Summary Cards */}
-      <div style={css.summaryGrid}>
-        <div style={css.card}>
-          <div style={css.cardValue}>{d.totalResumes ?? 0}</div>
-          <div style={css.cardLabel}>Total Resumes</div>
-        </div>
-        <div style={css.card}>
-          <div style={css.cardValue}>{d.publishedCount ?? 0}</div>
-          <div style={css.cardLabel}>Published</div>
-        </div>
-        <div style={css.card}>
-          <div style={css.cardValue}>{d.pendingCount ?? 0}</div>
-          <div style={css.cardLabel}>Pending Approval</div>
-        </div>
-        <div style={css.card}>
-          <div style={css.cardValue}>{d.totalViews ?? 0}</div>
-          <div style={css.cardLabel}>Total Views</div>
-        </div>
-      </div>
-
-      {/* Recent Resumes */}
-      {d.recentResumes?.length > 0 && (
-        <div style={css.section}>
-          <h3 style={css.sectionTitle}>Recent Resumes</h3>
-          <div style={css.resumeGrid}>
-            {d.recentResumes.map((r) => {
-              const statusCfg = STATUS[r.approvalStatus] ?? STATUS.DRAFT;
-              return (
-                <div key={r.id} style={css.resumeCard}>
-                  <div style={css.resumeHeader}>
-                    <h4 style={css.resumeTitle}>{r.title}</h4>
-                    <div style={{ ...css.statusBadge, background: statusCfg.bg, color: statusCfg.color }}>
-                      <statusCfg.Icon size={12} />
-                      {statusCfg.label}
-                    </div>
-                  </div>
-                  <p style={css.resumeMeta}>{r.professionType}</p>
-                  {!r.published && (
-                    <div style={css.completionBanner}>
-                      <AlertCircle size={14} />
-                      <span>Resume not completed</span>
-                      <button style={css.btnComplete} onClick={() => navigate(`/resumes/${r.id}`)}>
-                        Complete Resume
-                      </button>
-                    </div>
-                  )}
-                  <div style={css.resumeActions}>
-                    {r.published && r.slug && (
-                      <a href={`/p/${r.slug}`} target="_blank" rel="noreferrer" style={css.link}>
-                        <Globe size={14} /> View Public
-                      </a>
-                    )}
-                    <button style={css.btnSecondary} onClick={() => navigate(`/resumes/${r.id}`)}>
-                      <Edit3 size={14} /> Edit
-                    </button>
-                  </div>
-                  <div style={css.resumeStats}>
-                    <span><Eye size={12} /> {r.viewCount ?? 0} views</span>
-                    <span>Updated {new Date(r.updatedAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              );
-            })}
+      <div className="page-shell">
+        <section className="page-hero">
+          <div className="page-eyebrow">Overview</div>
+          <h2 className="page-title">A sharper view of your professional presence.</h2>
+          <p className="page-lead">
+            Review what is live, what needs attention, and where your portfolio is
+            attracting interest.
+          </p>
+          <div className="page-actions" style={{ marginTop: 22 }}>
+            <button className="premium-btn primary" onClick={() => navigate("/resumes")}>
+              Manage Portfolios
+            </button>
+            <button className="premium-btn secondary" onClick={() => navigate("/analytics")}>
+              View Analytics
+            </button>
           </div>
-        </div>
-      )}
+        </section>
+
+        {loading && (
+          <section className="premium-panel">
+            <p className="premium-muted">Loading dashboard...</p>
+          </section>
+        )}
+
+        {error && (
+          <section className="premium-panel">
+            <p className="premium-muted" style={{ color: "var(--wine)" }}>{error}</p>
+          </section>
+        )}
+
+        {!loading && !error && (
+          <>
+            <section className="premium-grid metrics">
+              <article className="premium-card kpi">
+                <span className="premium-meta">Total Portfolios</span>
+                <strong className="premium-kpi-value">{d.totalResumes ?? 0}</strong>
+                <span className="premium-muted">All professional profiles in your library</span>
+              </article>
+              <article className="premium-card kpi">
+                <span className="premium-meta">Published</span>
+                <strong className="premium-kpi-value">{d.publishedCount ?? 0}</strong>
+                <span className="premium-muted">Visible portfolio pages live to the world</span>
+              </article>
+              <article className="premium-card kpi">
+                <span className="premium-meta">Pending Approval</span>
+                <strong className="premium-kpi-value">{d.pendingCount ?? 0}</strong>
+                <span className="premium-muted">Submissions waiting for review</span>
+              </article>
+              <article className="premium-card kpi">
+                <span className="premium-meta">Total Views</span>
+                <strong className="premium-kpi-value">{d.totalViews ?? 0}</strong>
+                <span className="premium-muted">Signals across all published pages</span>
+              </article>
+            </section>
+
+            <section className="premium-panel">
+              <div className="page-actions" style={{ justifyContent: "space-between", marginBottom: 20 }}>
+                <div>
+                  <div className="page-eyebrow">Recent Work</div>
+                  <h3 style={{ margin: 0, fontSize: "2rem" }}>Latest portfolios</h3>
+                </div>
+                <button className="premium-btn ghost" onClick={() => navigate("/resumes")}>
+                  See All
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+
+              {recent.length === 0 ? (
+                <div className="premium-empty">
+                  <h4 style={{ marginBottom: 10, fontSize: "1.6rem" }}>No portfolios yet</h4>
+                  <p>Start your first one from the portfolios page and build a polished public profile.</p>
+                </div>
+              ) : (
+                <div className="premium-grid cards">
+                  {recent.map((resume) => {
+                    const status = STATUS[resume.approvalStatus] ?? STATUS.DRAFT;
+                    const StatusIcon = status.Icon;
+
+                    return (
+                      <article className="premium-card" key={resume.id}>
+                        <div className="panel-actions" style={{ justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                          <div>
+                            <h4 style={{ margin: 0, fontSize: "1.5rem" }}>{resume.title}</h4>
+                            <p className="premium-muted" style={{ marginTop: 6 }}>
+                              {resume.professionType || "Professional Resume"}
+                            </p>
+                          </div>
+                          <span className={`premium-badge ${status.className}`}>
+                            <StatusIcon size={12} />
+                            {status.label}
+                          </span>
+                        </div>
+
+                        {!resume.published && (
+                          <div className="premium-card" style={{ padding: 16, marginBottom: 16, borderRadius: 18 }}>
+                            <div className="page-actions" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                              <span className="premium-muted">This portfolio is not published yet.</span>
+                              <button
+                                className="premium-btn secondary"
+                                onClick={() => navigate(`/resumes/${resume.id}/edit`)}
+                              >
+                                Complete It
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="panel-actions">
+                          {resume.published && resume.slug ? (
+                            <a
+                              className="premium-link-btn ghost"
+                              href={`/p/${resume.slug}`}
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              <Globe size={14} />
+                              Public Page
+                            </a>
+                          ) : null}
+                          <button
+                            className="premium-btn secondary"
+                            onClick={() => navigate(`/resumes/${resume.id}/edit`)}
+                          >
+                            <Edit3 size={14} />
+                            Edit
+                          </button>
+                        </div>
+
+                        <div className="page-actions" style={{ justifyContent: "space-between", marginTop: 18 }}>
+                          <span className="premium-badge status-tone-info">
+                            <Eye size={12} />
+                            {resume.viewCount ?? 0} views
+                          </span>
+                          <span className="premium-muted">
+                            Updated {resume.updatedAt ? new Date(resume.updatedAt).toLocaleDateString() : "recently"}
+                          </span>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+      </div>
     </UserDashboardLayout>
   );
 }

@@ -9,89 +9,99 @@ const AdminPendingPage = () => {
 
   const load = () => {
     setLoading(true);
-    adminAPI.getPending()
+    adminAPI
+      .getPending()
       .then((res) => setResumes(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
-  const notify = (msg, type = "green") => {
+  const notify = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast({ msg: "", type: "" }), 3000);
   };
 
   const handleApprove = (id) => {
-    adminAPI.approve(id)
-      .then(() => { notify("Approved & published!", "green"); load(); })
-      .catch(() => notify("Failed to approve.", "red"));
+    adminAPI
+      .approve(id)
+      .then(() => {
+        notify("Approved and published.", "success");
+        load();
+      })
+      .catch(() => notify("Failed to approve.", "danger"));
   };
 
   const handleReject = (id) => {
-    adminAPI.reject(id)
-      .then(() => { notify("Resume rejected.", "red"); load(); })
-      .catch(() => notify("Failed to reject.", "red"));
+    adminAPI
+      .reject(id)
+      .then(() => {
+        notify("Resume rejected.", "danger");
+        load();
+      })
+      .catch(() => notify("Failed to reject.", "danger"));
   };
 
-  const toastColors = {
-    green: "bg-green-50 text-green-700 border border-green-200",
-    red:   "bg-red-50   text-red-700   border border-red-200",
-  };
+  const toastTone = toast.type === "danger" ? "status-tone-danger" : "status-tone-success";
 
   return (
-    <AdminDashboardLayout
-      title="Pending Approvals"
-      subtitle="Review and approve submitted resumes"
-    >
-      {/* Toast */}
-      {toast.msg && (
-        <div className={`rounded-lg px-4 py-2.5 text-sm font-medium mb-6 ${toastColors[toast.type]}`}>
-          {toast.msg}
-        </div>
-      )}
+    <AdminDashboardLayout title="Pending Approvals" subtitle="Review submitted resumes">
+      <div className="page-shell">
+        <section className="page-hero">
+          <div className="page-eyebrow">Moderation Queue</div>
+          <h2 className="page-title">Review submissions with more breathing room.</h2>
+          <p className="page-lead">
+            Approve strong submissions quickly, reject weak ones clearly, and keep the
+            publishing workflow feeling considered instead of cramped.
+          </p>
+        </section>
 
-      {loading && <p className="text-gray-400 text-sm">Loading...</p>}
+        {toast.msg ? (
+          <section className="premium-panel" style={{ padding: 18 }}>
+            <span className={`premium-badge ${toastTone}`}>{toast.msg}</span>
+          </section>
+        ) : null}
 
-      {!loading && resumes.length === 0 && (
-        <div className="text-center py-20">
-          <div className="text-4xl mb-3">✅</div>
-          <p className="text-gray-400 font-medium">No pending resumes — all clear!</p>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {resumes.map((r) => (
-          <div
-            key={r.id}
-            className="bg-white rounded-xl border border-gray-200 p-5 flex items-start justify-between gap-4 flex-wrap hover:shadow-sm transition-shadow"
-          >
-            <div>
-              <p className="font-bold text-gray-900 text-[15px]">{r.title}</p>
-              <p className="text-sm text-gray-400 mt-0.5">
-                {r.professionType} &middot; User: <code className="text-xs bg-gray-100 px-1 rounded">{r.userId}</code>
-              </p>
-              <p className="text-xs text-gray-300 mt-1">
-                Updated: {r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "—"}
-              </p>
+        {loading ? (
+          <section className="premium-panel">
+            <p className="premium-muted">Loading pending submissions...</p>
+          </section>
+        ) : resumes.length === 0 ? (
+          <section className="premium-panel">
+            <div className="premium-empty">
+              <h3 style={{ marginBottom: 10, fontSize: "1.7rem" }}>No pending resumes</h3>
+              <p>The queue is clear for now.</p>
             </div>
-
-            <div className="flex gap-2 shrink-0">
-              <button
-                onClick={() => handleApprove(r.id)}
-                className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-600 hover:text-white hover:border-green-600 transition-colors"
-              >
-                ✓ Approve & Publish
-              </button>
-              <button
-                onClick={() => handleReject(r.id)}
-                className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
-              >
-                ✗ Reject
-              </button>
-            </div>
-          </div>
-        ))}
+          </section>
+        ) : (
+          <section className="premium-list">
+            {resumes.map((resume) => (
+              <article className="premium-item" key={resume.id}>
+                <div className="premium-item-stack">
+                  <h3 className="premium-item-title">{resume.title}</h3>
+                  <span className="premium-muted">{resume.professionType || "Professional Resume"}</span>
+                  <div className="page-actions">
+                    <span className="premium-badge status-tone-info">User: {resume.userId}</span>
+                    <span className="premium-badge status-tone-neutral">
+                      Updated {resume.updatedAt ? new Date(resume.updatedAt).toLocaleString() : "-"}
+                    </span>
+                  </div>
+                </div>
+                <div className="panel-actions">
+                  <button className="premium-btn primary" onClick={() => handleApprove(resume.id)}>
+                    Approve
+                  </button>
+                  <button className="premium-btn secondary" onClick={() => handleReject(resume.id)}>
+                    Reject
+                  </button>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
       </div>
     </AdminDashboardLayout>
   );

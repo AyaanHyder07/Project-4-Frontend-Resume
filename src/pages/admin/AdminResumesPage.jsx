@@ -1,137 +1,165 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminDashboardLayout from "../../components/admin/AdminDashboardLayout";
 import { adminAPI } from "../../api/api";
 
 const STATUS_OPTIONS = ["ALL", "DRAFT", "PENDING", "APPROVED", "REJECTED"];
 
-const BADGE = {
-  DRAFT:    "bg-gray-100 text-gray-600",
-  PENDING:  "bg-yellow-50 text-yellow-700 border border-yellow-200",
-  APPROVED: "bg-green-50  text-green-700  border border-green-200",
-  REJECTED: "bg-red-50    text-red-700    border border-red-200",
+const STATUS_META = {
+  DRAFT: "status-tone-neutral",
+  PENDING: "status-tone-warn",
+  APPROVED: "status-tone-success",
+  REJECTED: "status-tone-danger",
 };
 
 const AdminResumesPage = () => {
   const [resumes, setResumes] = useState([]);
-  const [filter, setFilter]   = useState("ALL");
+  const [filter, setFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
-  const [toast, setToast]     = useState("");
+  const [toast, setToast] = useState("");
 
   const load = (status) => {
     setLoading(true);
     const call = status === "ALL" ? adminAPI.getAllResumes() : adminAPI.getByStatus(status);
-    call.then((res) => setResumes(res.data)).catch(() => {}).finally(() => setLoading(false));
+    call
+      .then((res) => setResumes(res.data))
+      .catch(() => setResumes([]))
+      .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(filter); }, [filter]);
+  useEffect(() => {
+    load(filter);
+  }, [filter]);
 
-  const notify = (m) => { setToast(m); setTimeout(() => setToast(""), 3000); };
+  const notify = (message) => {
+    setToast(message);
+    setTimeout(() => setToast(""), 3000);
+  };
 
   const handleUnpublish = (id) => {
-    adminAPI.forceUnpublish(id)
-      .then(() => { notify("Unpublished."); load(filter); })
-      .catch(() => notify("Failed."));
+    adminAPI
+      .forceUnpublish(id)
+      .then(() => {
+        notify("Resume unpublished.");
+        load(filter);
+      })
+      .catch(() => notify("Failed to unpublish resume."));
   };
 
   const handleDelete = (id) => {
     if (!window.confirm("Permanently delete this resume?")) return;
-    adminAPI.delete(id)
-      .then(() => { notify("Deleted."); load(filter); })
-      .catch(() => notify("Failed to delete."));
+    adminAPI
+      .delete(id)
+      .then(() => {
+        notify("Resume deleted.");
+        load(filter);
+      })
+      .catch(() => notify("Failed to delete resume."));
   };
+
+  const publishedCount = useMemo(
+    () => resumes.filter((resume) => resume.published).length,
+    [resumes]
+  );
 
   return (
     <AdminDashboardLayout title="All Resumes" subtitle="Manage every resume in the system">
+      <div className="page-shell">
+        <section className="page-hero">
+          <div className="page-eyebrow">Resume Library</div>
+          <h2 className="page-title">Every submission, now in a cleaner control surface.</h2>
+          <p className="page-lead">
+            Filter by approval status, review publication state, and take action without
+            the cramped table styling from before.
+          </p>
+          <div className="page-actions" style={{ marginTop: 22 }}>
+            <span className="premium-badge status-tone-info">{resumes.length} visible in this view</span>
+            <span className="premium-badge status-tone-success">{publishedCount} published</span>
+          </div>
+        </section>
 
-      {toast && (
-        <div className="rounded-lg px-4 py-2.5 text-sm font-medium mb-5 bg-gray-100 text-gray-700">
-          {toast}
-        </div>
-      )}
+        {toast ? (
+          <section className="premium-panel" style={{ padding: 18 }}>
+            <span className="premium-badge status-tone-info">{toast}</span>
+          </section>
+        ) : null}
 
-      {/* Filter pills */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {STATUS_OPTIONS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-              filter === s
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-500 border-gray-200 hover:border-blue-400 hover:text-blue-500"
-            }`}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
+        <section className="premium-panel">
+          <div className="page-actions">
+            {STATUS_OPTIONS.map((status) => (
+              <button
+                key={status}
+                className={`premium-btn ${filter === status ? "primary" : "secondary"}`}
+                onClick={() => setFilter(status)}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+        </section>
 
-      {loading && <p className="text-gray-400 text-sm">Loading...</p>}
-
-      {!loading && resumes.length === 0 && (
-        <div className="text-center py-20">
-          <div className="text-4xl mb-3">📄</div>
-          <p className="text-gray-400 font-medium">No resumes found for this filter.</p>
-        </div>
-      )}
-
-      {resumes.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                {["Title", "Profession", "Approval", "Published", "Slug", "Actions"].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {resumes.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-semibold text-gray-900">{r.title}</td>
-                  <td className="px-4 py-3 text-gray-500">{r.professionType || "—"}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold ${BADGE[r.approvalStatus] || BADGE.DRAFT}`}>
-                      {r.approvalStatus}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                      r.published ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-gray-100 text-gray-500"
-                    }`}>
-                      {r.published ? "Yes" : "No"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-400">{r.slug || "—"}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      {r.published && (
-                        <button
-                          onClick={() => handleUnpublish(r.id)}
-                          className="px-2.5 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-                        >
-                          Unpublish
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(r.id)}
-                        className="px-2.5 py-1 rounded text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+        {loading ? (
+          <section className="premium-panel">
+            <p className="premium-muted">Loading resumes...</p>
+          </section>
+        ) : resumes.length === 0 ? (
+          <section className="premium-panel">
+            <div className="premium-empty">
+              <h3 style={{ marginBottom: 10, fontSize: "1.7rem" }}>No resumes found</h3>
+              <p>There are no records for the current filter.</p>
+            </div>
+          </section>
+        ) : (
+          <section className="premium-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Profession</th>
+                  <th>Approval</th>
+                  <th>Published</th>
+                  <th>Slug</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {resumes.map((resume) => (
+                  <tr key={resume.id}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{resume.title}</div>
+                    </td>
+                    <td className="premium-muted">{resume.professionType || "-"}</td>
+                    <td>
+                      <span className={`premium-badge ${STATUS_META[resume.approvalStatus] || STATUS_META.DRAFT}`}>
+                        {resume.approvalStatus}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`premium-badge ${resume.published ? "status-tone-success" : "status-tone-neutral"}`}>
+                        {resume.published ? "Published" : "Private"}
+                      </span>
+                    </td>
+                    <td className="premium-muted" style={{ fontFamily: "var(--font-mono)" }}>
+                      {resume.slug || "-"}
+                    </td>
+                    <td>
+                      <div className="panel-actions">
+                        {resume.published ? (
+                          <button className="premium-btn secondary" onClick={() => handleUnpublish(resume.id)}>
+                            Unpublish
+                          </button>
+                        ) : null}
+                        <button className="premium-btn ghost" onClick={() => handleDelete(resume.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+      </div>
     </AdminDashboardLayout>
   );
 };
