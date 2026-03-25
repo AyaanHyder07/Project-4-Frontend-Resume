@@ -15,7 +15,8 @@ import {
   experienceAPI, educationAPI, skillAPI, projectAPI,
   certificationAPI, blogAPI, testimonialAPI, serviceAPI,
   exhibitionAPI, mediaAPI, publicationAPI, financialAPI,
-  themeCustomAPI
+  themeCustomAPI,
+  blockAPI
 } from "./users/editorAPI";
 
 import ProfileSection from "./users/sections/ProfileSection";
@@ -39,6 +40,7 @@ import ThemeCustomizerPanel, {
   VersioningPanel,
   SectionManager
 } from "./users/sections/ToolPanels";
+import CustomBlocksPanel from "./users/sections/CustomBlocksPanel";
 
 const SECTIONS = [
   { id: "profile", icon: <User size={14}/>, label: "Profile", component: ProfileSection, required: true },
@@ -60,6 +62,7 @@ const TOOLS = [
   { id: "theme", icon: <Palette size={14}/>, label: "Theme", component: ThemeCustomizerPanel, plan: "PRO" },
   { id: "versions", icon: <History size={14}/>, label: "Versions", component: VersioningPanel, plan: "PRO" },
   { id: "sections", icon: <Settings size={14}/>, label: "Sections", component: SectionManager, plan: null },
+  { id: "blocks", icon: <Sparkles size={14}/>, label: "Custom Blocks", component: CustomBlocksPanel, plan: null },
 ];
 
 const APPROVAL_META = {
@@ -113,6 +116,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
     layout: null,
     theme: null,
     sections: {},
+    customBlocks: [],
     sectionTitles: {},
     error: null,
     lastUpdated: null,
@@ -127,6 +131,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
         const settled = await Promise.allSettled([
           profileAPI.get(resumeId).catch(() => null),
           sectionAPI.getAll(resumeId).catch(() => []),
+          blockAPI.getAll(resumeId).catch(() => []),
           resume?.layoutId
             ? Promise.resolve(layoutAPI.getById(resume.layoutId)).then(normalizeAxios).catch(() => null)
             : Promise.resolve(null),
@@ -146,8 +151,9 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
 
         const profile = settled[0].status === "fulfilled" ? settled[0].value : null;
         const configs = settled[1].status === "fulfilled" ? settled[1].value || [] : [];
-        const layout = settled[2].status === "fulfilled" ? settled[2].value : null;
-        const theme = settled[3].status === "fulfilled" ? settled[3].value : null;
+        const blockItems = settled[2].status === "fulfilled" && Array.isArray(settled[2].value) ? settled[2].value : [];
+        const layout = settled[3].status === "fulfilled" ? settled[3].value : null;
+        const theme = settled[4].status === "fulfilled" ? settled[4].value : null;
         const configMap = new Map((Array.isArray(configs) ? configs : []).map((cfg) => [cfg.sectionName, cfg]));
         const sections = {};
         const sectionTitles = {};
@@ -155,7 +161,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
         SECTION_SOURCES.forEach((source, index) => {
           const config = configMap.get(source.config);
           if (config?.enabled === false) return;
-          const itemsResult = settled[index + 4];
+          const itemsResult = settled[index + 5];
           const items = itemsResult?.status === "fulfilled" && Array.isArray(itemsResult.value)
             ? itemsResult.value
             : [];
@@ -176,6 +182,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
           layout,
           theme,
           sections,
+          customBlocks: blockItems.filter((item) => item?.enabled !== false),
           sectionTitles,
           error: null,
           lastUpdated: new Date(),
@@ -197,8 +204,9 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
     layout: state.layout,
     theme: state.theme,
     sections: state.sections,
+    customBlocks: state.customBlocks,
     sectionTitles: state.sectionTitles,
-  }), [resume, state.layout, state.theme, state.sections, state.sectionTitles]);
+  }), [resume, state.layout, state.theme, state.sections, state.customBlocks, state.sectionTitles]);
 
   const stamp = state.lastUpdated
     ? state.lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -735,3 +743,6 @@ const btnStyle = (bg, color) => ({
   cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
   transition: "opacity 0.15s", whiteSpace: "nowrap",
 });
+
+
+

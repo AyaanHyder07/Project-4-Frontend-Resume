@@ -30,7 +30,7 @@ const okVoid = (r) => {
 };
 
 // Add base URL to bypass proxy issues
-const BASE = "http://127.0.0.1:8081";
+const BASE = "http://127.0.0.1:8082";
 const origFetch = window.fetch;
 const fetch = (url, options) => origFetch(url.startsWith('/api') ? BASE + url : url, options);
 
@@ -296,3 +296,12 @@ export const themeAPI = {
     return fetch(`/api/themes${q ? "?" + q : ""}`, { headers: h() }).then(ok);
   },
 };
+/* -- PORTFOLIO BLOCKS ----------------------------------------------------- */
+export const blockAPI = {
+  getAll: (resumeId) => fetch(`/api/blocks/resume/${resumeId}`, { headers: h() }).then(ok),
+  create: (body) => fetch('/api/blocks', { method: 'POST', headers: h(), body: JSON.stringify(body) }).then(ok),
+  update: (id, body) => fetch(`/api/blocks/${id}`, { method: 'PUT', headers: h(), body: JSON.stringify(body) }).then(ok),
+  reorder: (resumeId, ids) => fetch(`/api/blocks/resume/${resumeId}/reorder`, { method: 'PUT', headers: h(), body: JSON.stringify(ids) }).then(okVoid),
+  delete: (id) => fetch(`/api/blocks/${id}`, { method: 'DELETE', headers: h() }).then(okVoid),
+};
+

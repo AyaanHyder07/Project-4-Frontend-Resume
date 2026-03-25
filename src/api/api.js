@@ -228,19 +228,28 @@ export const analyticsAPI = {
 };
 
 export const templateAPI = {
-  getAvailable: () => axiosInstance.get("/api/templates"),
-  getByProfession: (profession) =>
-    axiosInstance.get("/api/templates", { params: { profession } }),
+  getAvailable: (params = {}) => axiosInstance.get('/api/templates', { params }),
+  getByProfession: (profession) => axiosInstance.get('/api/templates', { params: { profession } }),
+  getRecommendations: (professionType, mood) => axiosInstance.get('/api/templates/recommendations', { params: { professionType, mood } }),
+  getById: (id) => axiosInstance.get(`/api/templates/${id}`),
 };
 
 export const themeAPI = {
-  getAll: () => axiosInstance.get("/api/themes"),
+  getAll: () => axiosInstance.get('/api/themes'),
   getById: (id) => axiosInstance.get(`/api/themes/${id}`),
 };
 
 export const layoutAPI = {
-  getAll: () => axiosInstance.get("/api/layouts"),
+  getAll: (params = {}) => axiosInstance.get('/api/layouts', { params }),
   getById: (id) => axiosInstance.get(`/api/layouts/${id}`),
+};
+
+export const blockAPI = {
+  getAll: (resumeId) => axiosInstance.get(`/api/blocks/resume/${resumeId}`),
+  create: (data) => axiosInstance.post('/api/blocks', data),
+  update: (id, data) => axiosInstance.put(`/api/blocks/${id}`, data),
+  reorder: (resumeId, orderedIds) => axiosInstance.put(`/api/blocks/resume/${resumeId}/reorder`, orderedIds),
+  delete: (id) => axiosInstance.delete(`/api/blocks/${id}`),
 };
 
 // Subscription (user) + Plan catalog (public)
@@ -304,3 +313,6 @@ export const adminPlansAPI = {
   getAll: () => axiosInstance.get("/api/admin/plans"),
   update: (planType, data) => axiosInstance.put(`/api/admin/plans/${planType}`, data),
 };
+
+
+

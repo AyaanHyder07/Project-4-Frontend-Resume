@@ -1,21 +1,4 @@
-/**
- * StepReview.jsx
- * Step 4 — Final review before POST /api/resumes
- *
- * POST /api/resumes body:
- *   { templateId, title, professionType, themeOverrideId? }
- *
- * Backend flow on create:
- *   1. validateResumeCreation (checks resumeLimit from plan)
- *   2. isTemplateAllowed (checks template.planLevel <= user.plan)
- *   3. fetches template → layout → theme
- *   4. sets PRIVATE, DRAFT, version=1, viewCount=0L
- *   5. initializeDefaultSections
- *
- * After create → user is redirected to resume editor
- */
-
-import { Loader2, CheckCircle } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 
 export default function StepReview({
   cfg,
@@ -27,199 +10,121 @@ export default function StepReview({
   resumeCount,
   resumeLimit,
 }) {
-  const valid = cfg.title.trim() && cfg.professionType.trim() && cfg.templateId;
-  const atLimit = resumeCount >= resumeLimit;
+  const valid = cfg.title.trim() && cfg.professionType && cfg.templateId;
+  const atLimit = resumeLimit !== -1 && resumeCount >= resumeLimit;
 
   const rows = [
-    ["📝", "Title", cfg.title || "(not set)"],
-    ["💼", "Profession", cfg.professionType || "(not set)"],
-    ["📋", "Template", cfg.templateName || "(not selected)"],
-    [
-      "🎨",
-      "Theme",
-      cfg.themeName || "Default (template's theme)",
-    ],
-    ["💎", "Your Plan", userPlan],
-    [
-      "📊",
-      "Resumes Used",
-      resumeLimit === -1
-        ? `${resumeCount} / Unlimited`
-        : `${resumeCount} / ${resumeLimit}`,
-    ],
+    ["Title", cfg.title || "Not set"],
+    ["Profession", cfg.professionType?.replace(/_/g, " ") || "Not set"],
+    ["Template", cfg.templateName || "Not selected"],
+    ["Theme", cfg.themeName || "Template Default"],
+    ["Motion", cfg.motionPreset || "SUBTLE"],
+    ["Plan", userPlan],
+    ["Portfolio Slots", resumeLimit === -1 ? `${resumeCount} / Unlimited` : `${resumeCount} / ${resumeLimit}`],
   ];
 
   return (
     <div style={{ animation: "studioFadeUp 0.32s both" }}>
-      {/* Summary grid */}
-      <div style={s.summaryGrid}>
-        {rows.map(([ic, label, val]) => (
+      <div style={s.grid}>
+        {rows.map(([label, value]) => (
           <div key={label} style={s.row}>
-            <div style={s.rowLeft}>
-              <span style={{ fontSize: 14 }}>{ic}</span>
-              <span style={s.rowLabel}>{label}</span>
-            </div>
-            <span
-              style={{
-                ...s.rowVal,
-                color:
-                  val === "(not set)" || val === "(not selected)"
-                    ? "#B43C3C"
-                    : "#1C1C1C",
-                fontWeight:
-                  val === "(not set)" || val === "(not selected)" ? 400 : 600,
-              }}
-            >
-              {val}
-            </span>
+            <div style={s.label}>{label}</div>
+            <div style={s.value}>{value}</div>
           </div>
         ))}
       </div>
 
-      {/* What happens next */}
       <div style={s.nextBox}>
-        <div style={s.nextTitle}>📦 What gets created:</div>
-        {[
-          "A new private resume in DRAFT status",
-          "Default portfolio sections initialized (Experience, Education, Skills…)",
-          "Linked to your chosen template + theme",
-          "Ready to fill with your content",
-        ].map((item) => (
-          <div key={item} style={s.nextItem}>
-            <CheckCircle size={11} color="#22c55e" style={{ flexShrink: 0 }} />
-            <span>{item}</span>
-          </div>
-        ))}
+        {[`
+A new draft portfolio will be created with your selected template, theme, and motion preset.`.trim(),
+          "Default fixed sections will be initialized for the editor.",
+          "You will still be able to add custom blocks later for anything beyond the built-in sections.",
+          "The portfolio stays private until you publish it."]
+          .map((item) => (
+            <div key={item} style={s.nextItem}>
+              <CheckCircle size={12} color="#22c55e" />
+              <span>{item}</span>
+            </div>
+          ))}
       </div>
 
-      {/* Plan limit warning */}
-      {atLimit && (
-        <div style={s.errorBox}>
-          ⚠ You've reached the resume limit for your <strong>{userPlan}</strong>{" "}
-          plan ({resumeLimit} resume{resumeLimit !== 1 ? "s" : ""}). Please
-          upgrade to create more.
-        </div>
-      )}
+      {atLimit ? <div style={s.errorBox}>You have reached the portfolio limit for your {userPlan} plan.</div> : null}
+      {!cfg.title.trim() ? <div style={s.warnBox}>Portfolio title is required.</div> : null}
+      {!cfg.professionType ? <div style={s.warnBox}>Profession selection is required.</div> : null}
+      {!cfg.templateId ? <div style={s.warnBox}>Template selection is required.</div> : null}
+      {error ? <div style={s.errorBox}>{error}</div> : null}
 
-      {/* Validation warnings */}
-      {!cfg.title.trim() && (
-        <div style={s.warnBox}>⚡ Portfolio title is required (Step 1)</div>
-      )}
-      {!cfg.professionType.trim() && (
-        <div style={s.warnBox}>⚡ Profession type is required (Step 1)</div>
-      )}
-      {!cfg.templateId && (
-        <div style={s.warnBox}>⚡ Please select a template (Step 2)</div>
-      )}
-
-      {/* API error */}
-      {error && <div style={s.errorBox}>⚠ {error}</div>}
-
-      {/* Saving state */}
-      {saving && (
+      {saving ? (
         <div style={s.savingBox}>
-          <Loader2
-            size={13}
-            style={{ animation: "spin 1s linear infinite" }}
-          />
-          {saveMsg || "Creating your portfolio…"}
+          <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
+          {saveMsg || "Creating your portfolio..."}
         </div>
-      )}
+      ) : null}
 
-      {/* Submit button */}
       <button
+        type="button"
         onClick={onSubmit}
         disabled={saving || !valid || atLimit}
-        style={{
-          ...s.submitBtn,
-          opacity: saving || !valid || atLimit ? 0.6 : 1,
-          cursor: saving || !valid || atLimit ? "not-allowed" : "pointer",
-        }}
+        style={{ ...s.button, opacity: saving || !valid || atLimit ? 0.62 : 1, cursor: saving || !valid || atLimit ? "not-allowed" : "pointer" }}
       >
-        {saving ? (
-          <>
-            <Loader2
-              size={14}
-              style={{ animation: "spin 1s linear infinite" }}
-            />
-            Creating…
-          </>
-        ) : (
-          "🚀 Create Portfolio"
-        )}
+        {saving ? "Creating..." : "Create Portfolio"}
       </button>
-
-      <p style={s.note}>
-        Your portfolio starts as <strong>Private</strong> and{" "}
-        <strong>Draft</strong>. You control when it goes public.
-      </p>
     </div>
   );
 }
 
 const s = {
-  summaryGrid: {
-    background: "#FAFAF8",
-    border: "1.5px solid #E5E3DE",
-    borderRadius: 12,
-    overflow: "hidden",
+  grid: {
+    display: "grid",
+    gap: 8,
     marginBottom: 16,
   },
   row: {
     display: "flex",
-    alignItems: "center",
     justifyContent: "space-between",
-    padding: "9px 13px",
-    borderBottom: "1px solid #F0EDE6",
-    gap: 8,
-  },
-  rowLeft: {
-    display: "flex",
+    gap: 10,
     alignItems: "center",
-    gap: 7,
-    minWidth: 0,
+    padding: "10px 13px",
+    borderRadius: 12,
+    border: "1px solid #E7DED1",
+    background: "#FAF7F1",
   },
-  rowLabel: {
+  label: {
     fontSize: 11,
     color: "#8A8578",
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
     fontFamily: "'DM Sans', sans-serif",
-    fontWeight: 500,
   },
-  rowVal: {
-    fontSize: 11.5,
-    fontFamily: "'DM Sans', sans-serif",
+  value: {
+    fontSize: 12,
+    color: "#1C1C1C",
+    fontWeight: 600,
     textAlign: "right",
-    maxWidth: 180,
-    wordBreak: "break-word",
+    fontFamily: "'DM Sans', sans-serif",
   },
   nextBox: {
-    background: "#F0F9FF",
-    border: "1px solid #BFDBFE",
-    borderRadius: 11,
-    padding: "11px 13px",
+    background: "#EEF6FF",
+    border: "1px solid #CFE2FF",
+    borderRadius: 12,
+    padding: 13,
     marginBottom: 14,
-  },
-  nextTitle: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: "#1d4ed8",
-    marginBottom: 8,
-    fontFamily: "'DM Sans', sans-serif",
   },
   nextItem: {
     display: "flex",
+    gap: 8,
     alignItems: "flex-start",
-    gap: 7,
-    fontSize: 10.5,
-    color: "#374151",
-    marginBottom: 5,
+    fontSize: 11,
+    color: "#4F6178",
+    lineHeight: 1.45,
+    marginBottom: 6,
     fontFamily: "'DM Sans', sans-serif",
-    lineHeight: 1.4,
   },
   warnBox: {
-    marginBottom: 7,
-    padding: "8px 12px",
-    borderRadius: 8,
+    marginBottom: 8,
+    padding: "10px 12px",
+    borderRadius: 10,
     background: "rgba(180,60,60,0.07)",
     border: "1px solid rgba(180,60,60,0.18)",
     fontSize: 11,
@@ -228,8 +133,8 @@ const s = {
   },
   errorBox: {
     marginBottom: 10,
-    padding: "9px 13px",
-    borderRadius: 9,
+    padding: "10px 12px",
+    borderRadius: 10,
     background: "rgba(180,60,60,0.1)",
     border: "1px solid rgba(180,60,60,0.25)",
     fontSize: 11.5,
@@ -240,38 +145,24 @@ const s = {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    padding: "9px 13px",
-    borderRadius: 9,
+    padding: "10px 12px",
+    borderRadius: 10,
     background: "#1C1C1C",
-    color: "#F0EDE6",
+    color: "#F3EEE4",
     fontSize: 12,
-    fontWeight: 600,
+    fontWeight: 700,
     marginBottom: 12,
     fontFamily: "'DM Sans', sans-serif",
   },
-  submitBtn: {
+  button: {
     width: "100%",
     padding: "13px 0",
     background: "#1C1C1C",
-    color: "#F0EDE6",
+    color: "#F3EEE4",
     border: "none",
-    borderRadius: 11,
+    borderRadius: 12,
     fontSize: 14,
     fontWeight: 700,
     fontFamily: "'DM Sans', sans-serif",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    transition: "all 0.2s",
-    letterSpacing: "-0.01em",
-  },
-  note: {
-    marginTop: 10,
-    fontSize: 10.5,
-    color: "#8A8578",
-    textAlign: "center",
-    fontFamily: "'DM Sans', sans-serif",
-    lineHeight: 1.5,
   },
 };

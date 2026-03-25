@@ -1,134 +1,112 @@
-/**
- * StepChooseTheme.jsx
- * Step 3 of Resume Creation Studio
- */
-
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { themeAPI } from "./resumeStudioAPI";
 import { Loader2, Lock } from "lucide-react";
+import { themeAPI } from "./resumeStudioAPI";
+
+const PLAN_ORDINAL = { FREE: 0, BASIC: 1, PRO: 2, PREMIUM: 3 };
 
 export default function StepChooseTheme({ cfg, set, userPlan }) {
+  const navigate = useNavigate();
   const [themes, setThemes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
     themeAPI
-      .getAll()
+      .getAll(cfg.primaryMood ? { mood: cfg.primaryMood } : {})
       .then((data) => {
-        console.log("FETCHED THEMES:", data);
-        setThemes(Array.isArray(data) ? data : (data?.content || data?.data || []));
+        if (!active) return;
+        setThemes(Array.isArray(data) ? data : []);
       })
-      .catch((err) => {
-        console.error("THEME FETCH ERROR:", err);
-        setThemes([]);
+      .catch(() => {
+        if (active) setThemes([]);
       })
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [cfg.primaryMood]);
+
+  const sortedThemes = useMemo(() => {
+    return [...themes].sort((a, b) => {
+      if ((b.featured ? 1 : 0) !== (a.featured ? 1 : 0)) return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+      return (a.requiredPlan || "FREE").localeCompare(b.requiredPlan || "FREE");
+    });
+  }, [themes]);
 
   return (
     <div style={{ animation: "studioFadeUp 0.32s both" }}>
-      <div style={{ fontSize: 13, color: "#5A5550", marginBottom: 16 }}>
-        Select a color and typography theme. Or keep the template's default.
+      <div style={s.infoBox}>
+        Themes are reusable skins. You can keep the template default, or swap in a shared premium look without changing your layout structure.
       </div>
 
       {loading ? (
-        <div style={{ padding: "40px 0", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <Loader2 size={24} style={{ animation: "spin 1s linear infinite", color: "#1C1C1C" }} />
-          <div style={{ fontSize: 12, marginTop: 10, color: "#8A8578" }}>Loading themes...</div>
+        <div style={s.center}>
+          <Loader2 size={20} style={{ animation: "spin 1s linear infinite", color: "#1C1C1C" }} />
+          <div style={s.loadTxt}>Loading themes...</div>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          {/* Default Theme Option */}
-          <div
+        <div style={s.grid}>
+          <button
+            type="button"
             onClick={() => {
               set("themeOverrideId", null);
-              set("themeName", "Default");
+              set("themeName", "Template Default");
             }}
-            style={{
-              padding: 16,
-              borderRadius: 12,
-              border: cfg.themeOverrideId === null ? "2px solid #1C1C1C" : "1.5px solid #E5E3DE",
-              background: "#fff",
-              cursor: "pointer",
-              boxShadow: cfg.themeOverrideId === null ? "0 4px 20px rgba(0,0,0,0.08)" : "none",
-              transition: "all 0.2s"
-            }}
+            style={{ ...s.card, border: cfg.themeOverrideId === null ? "2px solid #1C1C1C" : "1px solid #E5E3DE" }}
           >
-            <div style={{ fontWeight: 600, fontSize: 13, color: "#1C1C1C", marginBottom: 4 }}>
-              Template Default
+            <div style={{ ...s.preview, background: "linear-gradient(135deg, #F4EFE5 0%, #E7DFD2 100%)" }}>
+              <div style={{ width: "68%", height: 16, borderRadius: 999, background: "#1C1C1C" }} />
+              <div style={{ width: "42%", height: 10, borderRadius: 999, background: "#BDAA84", marginTop: 8 }} />
             </div>
-            <div style={{ fontSize: 11, color: "#8A8578" }}>
-              Use original template styles
+            <div style={s.body}>
+              <div style={s.title}>Template Default</div>
+              <div style={s.text}>Use the original theme packed with your selected template.</div>
             </div>
-            <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
-              <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#E5E3DE", border: "1px solid #D5D3CE" }} />
-              <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#B0AB9E", border: "1px solid #D5D3CE" }} />
-              <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#5A5550", border: "1px solid #D5D3CE" }} />
-            </div>
-          </div>
+          </button>
 
-          {themes.map((t) => {
-            const isSelected = cfg.themeOverrideId === t.id;
-            const pOpts = t.colorPalette || {};
-            const pri = pOpts.primary || "#1C1C1C";
-            const acc = pOpts.accent || "#4A6FA5";
-            const bg = pOpts.pageBackground || "#F5F3EE";
-            
-            const reqPlan = t.requiredPlan || "FREE";
-            const PLAN_ORDINAL = { FREE: 0, BASIC: 1, PRO: 2, PREMIUM: 3 };
-            const userOrdinal = PLAN_ORDINAL[userPlan] ?? 0;
-            const planOrd = PLAN_ORDINAL[reqPlan] ?? 0;
-            const locked = userOrdinal < planOrd;
-
+          {sortedThemes.map((theme) => {
+            const locked = (PLAN_ORDINAL[theme.requiredPlan || "FREE"] ?? 0) > (PLAN_ORDINAL[userPlan] ?? 0);
+            const selected = cfg.themeOverrideId === theme.id;
+            const palette = theme.colorPalette || {};
             return (
-              <div
-                key={t.id}
+              <button
+                key={theme.id}
+                type="button"
                 onClick={() => {
                   if (locked) {
                     navigate("/upgrade");
                     return;
                   }
-                  set("themeOverrideId", t.id);
-                  set("themeName", t.name);
+                  set("themeOverrideId", theme.id);
+                  set("themeName", theme.name);
                 }}
-                style={{
-                  position: "relative",
-                  padding: 16,
-                  borderRadius: 12,
-                  border: isSelected ? "2px solid #1C1C1C" : "1.5px solid #E5E3DE",
-                  background: "#fff",
-                  cursor: locked ? "not-allowed" : "pointer",
-                  opacity: locked ? 0.6 : 1,
-                  boxShadow: isSelected ? "0 4px 20px rgba(0,0,0,0.08)" : "none",
-                  transition: "all 0.2s"
-                }}
+                style={{ ...s.card, border: selected ? "2px solid #1C1C1C" : "1px solid #E5E3DE", opacity: locked ? 0.66 : 1 }}
               >
-                {locked && (
-                  <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, zIndex: 10 }}>
-                    <Lock size={16} color="#fff" />
-                    <span style={{ fontSize: 9, color: "#fff", fontWeight: 700, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.5px" }}>{reqPlan}</span>
+                <div style={{ ...s.preview, background: palette.pageBackground || "#F7F3EA" }}>
+                  {locked ? <div style={s.lock}><Lock size={15} /><span>{theme.requiredPlan}</span></div> : null}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[palette.primary, palette.secondary, palette.accent, palette.surfaceBackground].filter(Boolean).slice(0, 4).map((color, index) => (
+                      <span key={`${theme.id}-${index}`} style={{ width: 26, height: 26, borderRadius: 999, background: color, border: "1px solid rgba(17,17,17,0.08)" }} />
+                    ))}
                   </div>
-                )}
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#1C1C1C", marginBottom: 4 }}>
-                  {t.name}
+                  <div style={{ marginTop: 14, width: "65%", height: 14, borderRadius: 999, background: palette.primary || "#1C1C1C", opacity: 0.9 }} />
+                  <div style={{ marginTop: 8, width: "42%", height: 10, borderRadius: 999, background: palette.accent || "#BDAA84", opacity: 0.85 }} />
                 </div>
-                <div style={{ fontSize: 11, color: "#8A8578", textTransform: "capitalize" }}>
-                  {locked ? "💎 Premium" : (t.primaryMood?.replace(/_/g, " ").toLowerCase() || "Theme")}
-                </div>
-                <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: pri, border: "1px solid #E5E3DE" }} />
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: acc, border: "1px solid #E5E3DE" }} />
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: bg, border: "1px solid #E5E3DE" }} />
-                </div>
-                {t.typography && (
-                  <div style={{ fontSize: 10, color: "#8A8578", marginTop: 8 }}>
-                    {t.typography.headingFont?.replace(/['"]/g, '').split(',')[0]}
+                <div style={s.body}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+                    <div style={s.title}>{theme.name}</div>
+                    <div style={s.planBadge}>{theme.requiredPlan || "FREE"}</div>
                   </div>
-                )}
-              </div>
+                  <div style={s.text}>{theme.mood?.replace(/_/g, " ") || "Shared theme"}</div>
+                  {theme.typography?.headingFont ? (
+                    <div style={s.meta}>{theme.typography.headingFont.replace(/["']/g, "").split(",")[0]}</div>
+                  ) : null}
+                </div>
+              </button>
             );
           })}
         </div>
@@ -136,3 +114,97 @@ export default function StepChooseTheme({ cfg, set, userPlan }) {
     </div>
   );
 }
+
+const s = {
+  infoBox: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "#F7F4EE",
+    border: "1px solid #E9E1D4",
+    fontSize: 11,
+    color: "#5C5348",
+    marginBottom: 14,
+    fontFamily: "'DM Sans', sans-serif",
+    lineHeight: 1.45,
+  },
+  center: {
+    display: "grid",
+    placeItems: "center",
+    gap: 8,
+    padding: "36px 0",
+  },
+  loadTxt: {
+    fontSize: 12,
+    color: "#8A8578",
+    fontFamily: "'DM Sans', sans-serif",
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 12,
+  },
+  card: {
+    position: "relative",
+    padding: 0,
+    background: "#fff",
+    borderRadius: 18,
+    overflow: "hidden",
+    textAlign: "left",
+    cursor: "pointer",
+    boxShadow: "0 10px 24px rgba(28,28,28,0.05)",
+  },
+  preview: {
+    position: "relative",
+    padding: 16,
+    minHeight: 122,
+    borderBottom: "1px solid rgba(17,17,17,0.06)",
+  },
+  body: {
+    padding: 14,
+  },
+  title: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#1C1C1C",
+    fontFamily: "'DM Sans', sans-serif",
+  },
+  text: {
+    marginTop: 4,
+    fontSize: 11,
+    color: "#817667",
+    lineHeight: 1.45,
+    fontFamily: "'DM Sans', sans-serif",
+  },
+  meta: {
+    marginTop: 8,
+    fontSize: 10,
+    color: "#978A77",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    fontWeight: 700,
+    fontFamily: "'DM Sans', sans-serif",
+  },
+  planBadge: {
+    borderRadius: 999,
+    background: "#F2EEE7",
+    color: "#7A6E5E",
+    padding: "4px 7px",
+    fontSize: 9.5,
+    fontWeight: 700,
+    fontFamily: "'DM Sans', sans-serif",
+  },
+  lock: {
+    position: "absolute",
+    inset: 0,
+    background: "rgba(17,17,17,0.58)",
+    color: "#fff",
+    display: "grid",
+    placeItems: "center",
+    gap: 6,
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    fontFamily: "'DM Sans', sans-serif",
+  },
+};

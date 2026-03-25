@@ -128,8 +128,8 @@ function resolveAssetUrl(url) {
   if (!url) return null;
   if (url.startsWith("http")) return url;
   return url.startsWith("/")
-    ? `http://127.0.0.1:8081${url}`
-    : `http://127.0.0.1:8081/${url}`;
+    ? `http://127.0.0.1:8082${url}`
+    : `http://127.0.0.1:8082/${url}`;
 }
 
 function hexToRgb(hex) {
@@ -520,6 +520,36 @@ export default function PublicPortfolioRenderer({
       );
     });
 
+  const renderCustomBlock = (block) => {
+    const payload = block?.payload || {};
+    const title = block?.title || block?.blockType?.replace(/_/g, " ") || "Custom Block";
+    const text = payload.text || payload.description || payload.content || "";
+    const listItems = Array.isArray(payload.items) ? payload.items : [];
+    return (
+      <section
+        key={block.id}
+        style={{
+          ...surfaceStyle,
+          padding: "1.4rem 1.5rem",
+          marginBottom: "1rem",
+        }}
+      >
+        <div style={sectionHeaderStyle}>{title}</div>
+        {text ? <p style={{ margin: 0, color: colors.textSecondary, whiteSpace: "pre-wrap" }}>{String(text)}</p> : null}
+        {listItems.length ? (
+          <div style={{ display: "grid", gap: "0.65rem", marginTop: text ? "1rem" : 0 }}>
+            {listItems.map((item, index) => (
+              <div key={index} style={{ paddingLeft: "1rem", borderLeft: `3px solid ${colors.dividerColor}`, color: colors.textSecondary }}>
+                {typeof item === "string" ? item : item?.label || item?.title || JSON.stringify(item)}
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+    );
+  };
+
+  const renderCustomBlocks = () => (portfolio?.customBlocks || []).filter((block) => block?.enabled !== false).map(renderCustomBlock);
   const mainLayout = () => {
     if (layoutType === "LEFT_SIDEBAR" || layoutType === "RIGHT_SIDEBAR") {
       const sidebarFirst = layoutType === "LEFT_SIDEBAR";
@@ -738,6 +768,8 @@ export default function PublicPortfolioRenderer({
         )}
 
         {mainLayout()}
+
+        {renderCustomBlocks()}
       </div>
     </div>
   );
@@ -756,3 +788,7 @@ function inputStyle(colors) {
     boxSizing: "border-box",
   };
 }
+
+
+
+

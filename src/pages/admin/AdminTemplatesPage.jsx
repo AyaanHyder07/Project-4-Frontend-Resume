@@ -1,7 +1,66 @@
 import { useEffect, useState } from "react";
+import { Lock, Sparkles, Star } from "lucide-react";
 import AdminDashboardLayout from "../../components/admin/AdminDashboardLayout";
-import { adminTemplateAPI, adminLayoutAPI, adminThemeAPI, templateAPI, layoutAPI, themeAPI } from "../../api/api";
-import { Lock, Star, Sparkles } from "lucide-react";
+import { adminLayoutAPI, adminTemplateAPI, adminThemeAPI } from "../../api/api";
+
+const PLAN_OPTIONS = ["FREE", "BASIC", "PRO", "PREMIUM"];
+const MOOD_OPTIONS = ["CLEAN_MINIMAL", "CORPORATE_FORMAL", "ARTISTIC_EXPRESSIVE", "LUXURY_ELEGANT", "DARK_DRAMATIC", "FUTURISTIC_TECH"];
+const CATEGORY_OPTIONS = ["PROFESSIONAL_CORPORATE", "TECH_ENGINEERING", "DESIGN_CREATIVE", "ARTIST_ILLUSTRATION", "PHOTOGRAPHY_FILM", "WRITING_PUBLISHING", "HEALTHCARE_MEDICAL", "FINANCE_BUSINESS", "EDUCATION_RESEARCH"];
+const CONTENT_MODE_OPTIONS = ["RESUME_FIRST", "PORTFOLIO_FIRST", "GALLERY_FIRST", "CASE_STUDY_FIRST"];
+const BLOCK_TYPE_OPTIONS = ["RICH_TEXT", "LINK_LIST", "METRICS", "TIMELINE", "GALLERY", "CASE_STUDY", "QUOTE", "CTA", "FAQ", "EMBED", "PROCESS_STEPS", "CUSTOM_LIST", "STATS_GRID", "CLIENT_LOGOS", "SERVICES_GRID", "AVAILABILITY_CARD"];
+const PROFESSION_OPTIONS = ["SOFTWARE_ENGINEER", "FULL_STACK_DEVELOPER", "UX_DESIGNER", "PRODUCT_DESIGNER", "PHOTOGRAPHER", "FILMMAKER", "CONSULTANT", "DOCTOR", "LAWYER", "WRITER", "RESEARCHER"];
+const MOTION_OPTIONS = ["NONE", "SUBTLE", "EDITORIAL", "PLAYFUL", "CINEMATIC", "PARALLAX", "SLIDESHOW", "IMMERSIVE"];
+
+const PRESETS = [
+  {
+    name: "Executive Ledger",
+    tagline: "Boardroom-ready professional presence",
+    description: "Resume-first premium template for consultants, business operators, and executives.",
+    planLevel: "PRO",
+    primaryMood: "CORPORATE_FORMAL",
+    supportedProfessionCategories: ["PROFESSIONAL_CORPORATE", "FINANCE_BUSINESS"],
+    supportedProfessionTypes: ["CONSULTANT"],
+    supportedContentModes: ["RESUME_FIRST", "CASE_STUDY_FIRST"],
+    supportedBlockTypes: ["RICH_TEXT", "METRICS", "QUOTE", "CTA"],
+    recommendedBlockTypes: ["METRICS", "QUOTE"],
+    supportedMotionPresets: ["NONE", "SUBTLE", "EDITORIAL"],
+    globallySelectable: true,
+    premiumRank: 60,
+    targetAudiences: ["FREELANCER"],
+  },
+  {
+    name: "Studio Frame",
+    tagline: "Case-study layout for product and brand work",
+    description: "Portfolio-first designer template with a premium showcase rhythm.",
+    planLevel: "PRO",
+    primaryMood: "ARTISTIC_EXPRESSIVE",
+    supportedProfessionCategories: ["DESIGN_CREATIVE"],
+    supportedProfessionTypes: ["UX_DESIGNER", "PRODUCT_DESIGNER"],
+    supportedContentModes: ["PORTFOLIO_FIRST", "CASE_STUDY_FIRST"],
+    supportedBlockTypes: ["CASE_STUDY", "METRICS", "PROCESS_STEPS", "QUOTE"],
+    recommendedBlockTypes: ["CASE_STUDY", "PROCESS_STEPS"],
+    supportedMotionPresets: ["SUBTLE", "EDITORIAL", "PLAYFUL"],
+    globallySelectable: true,
+    premiumRank: 72,
+    targetAudiences: ["FREELANCER"],
+  },
+  {
+    name: "Lightbox Reel",
+    tagline: "Immersive gallery-first portfolio",
+    description: "Visual premium template for photography and film portfolios.",
+    planLevel: "PREMIUM",
+    primaryMood: "DARK_DRAMATIC",
+    supportedProfessionCategories: ["PHOTOGRAPHY_FILM", "ARTIST_ILLUSTRATION"],
+    supportedProfessionTypes: ["PHOTOGRAPHER", "FILMMAKER"],
+    supportedContentModes: ["GALLERY_FIRST", "PORTFOLIO_FIRST"],
+    supportedBlockTypes: ["GALLERY", "QUOTE", "EMBED", "CTA"],
+    recommendedBlockTypes: ["GALLERY", "EMBED"],
+    supportedMotionPresets: ["CINEMATIC", "SLIDESHOW", "IMMERSIVE"],
+    globallySelectable: true,
+    premiumRank: 92,
+    targetAudiences: ["CREATOR"],
+  },
+];
 
 const emptyForm = {
   name: "",
@@ -10,113 +69,65 @@ const emptyForm = {
   planLevel: "FREE",
   layoutId: "",
   defaultThemeId: "",
-  supportedSections: ["PROFILE", "EXPERIENCE", "EDUCATION", "SKILLS", "PROJECTS", "CONTACT"],
-  requiredSections: ["PROFILE"],
-  targetAudiences: ["FREELANCER"],
-  professionTags: [],
   primaryMood: "CLEAN_MINIMAL",
   featured: false,
   isNew: false,
   active: true,
+  globallySelectable: true,
+  premiumRank: 10,
+  targetAudiences: "FREELANCER",
+  supportedProfessionCategories: "",
+  supportedProfessionTypes: "",
+  supportedContentModes: "RESUME_FIRST",
+  supportedBlockTypes: "RICH_TEXT, CTA",
+  recommendedBlockTypes: "RICH_TEXT",
+  supportedMotionPresets: "SUBTLE",
 };
 
-const SECTION_OPTIONS = [
-  "PROFILE", "EXPERIENCE", "EDUCATION", "SKILLS", "PROJECTS",
-  "PROJECT_GALLERY", "CERTIFICATIONS", "FINANCIAL_CREDENTIALS",
-  "PUBLICATIONS", "BLOG_POSTS", "MEDIA_APPEARANCES",
-  "EXHIBITIONS_AWARDS", "TESTIMONIALS", "SERVICE_OFFERINGS", "CONTACT",
-];
-
-const PLAN_OPTIONS = ["FREE", "BASIC", "PRO", "PREMIUM"];
-const MOOD_OPTIONS = [
-  "CLEAN_MINIMAL", "BOLD_VIBRANT", "DARK_DRAMATIC", "EARTHY_ORGANIC", "LUXURY_ELEGANT",
-  "PLAYFUL_QUIRKY", "CORPORATE_FORMAL", "RETRO_VINTAGE", "FUTURISTIC_TECH", "ARTISTIC_EXPRESSIVE",
-];
-
 const normalizeResponse = (result) => result?.data ?? result ?? [];
+const parseList = (value) => String(value || "").split(",").map((entry) => entry.trim()).filter(Boolean);
+const stringifyList = (value) => Array.isArray(value) ? value.join(", ") : "";
 
-const AdminTemplatesPage = () => {
+export default function AdminTemplatesPage() {
   const [templates, setTemplates] = useState([]);
   const [layouts, setLayouts] = useState([]);
   const [themes, setThemes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState({ msg: "", type: "" });
-  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState({ msg: "", type: "green" });
 
   const notify = (msg, type = "green") => {
     setToast({ msg, type });
-    setTimeout(() => setToast({ msg: "", type: "" }), 3000);
+    setTimeout(() => setToast({ msg: "", type: "green" }), 2500);
   };
 
-  const loadCatalogSafely = async (preferredCall, fallbackCall, emptyMessage) => {
-    try {
-      return normalizeResponse(await preferredCall());
-    } catch (primaryError) {
-      try {
-        return normalizeResponse(await fallbackCall());
-      } catch (fallbackError) {
-        console.error(primaryError);
-        console.error(fallbackError);
-        notify(emptyMessage, "red");
-        return [];
-      }
-    }
-  };
-
-  const loadData = async () => {
+  const load = async () => {
     setLoading(true);
     try {
-      const [templatesData, layoutsData, themesData] = await Promise.all([
-        loadCatalogSafely(() => adminTemplateAPI.getAll(), () => templateAPI.getAvailable(), "Templates could not be loaded."),
-        loadCatalogSafely(() => adminLayoutAPI.getAll(), () => layoutAPI.getAll(), "Layouts could not be loaded."),
-        loadCatalogSafely(() => adminThemeAPI.getAll(), () => themeAPI.getAll(), "Themes could not be loaded."),
+      const [templateData, layoutData, themeData] = await Promise.all([
+        adminTemplateAPI.getAll(),
+        adminLayoutAPI.getAll(),
+        adminThemeAPI.getAll(),
       ]);
-
-      setTemplates(Array.isArray(templatesData) ? templatesData : []);
-      setLayouts(Array.isArray(layoutsData) ? layoutsData : []);
-      setThemes(Array.isArray(themesData) ? themesData : []);
-    } catch (e) {
-      console.error(e);
-      notify("Failed to load template data.", "red");
+      setTemplates(normalizeResponse(templateData));
+      setLayouts(normalizeResponse(layoutData));
+      setThemes(normalizeResponse(themeData));
+    } catch {
       setTemplates([]);
       setLayouts([]);
       setThemes([]);
+      notify("Template catalogs could not be loaded.", "red");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadData(); }, []);
-
-  const handleSave = async () => {
-    if (!form.name.trim() || !form.layoutId || !form.defaultThemeId) {
-      alert("Name, Layout, and Theme are required.");
-      return;
-    }
-
-    setSaving(true);
-    const payload = { ...form };
-    if (typeof payload.professionTags === "string") {
-      payload.professionTags = payload.professionTags.split(",").map((s) => s.trim()).filter(Boolean);
-    }
-
-    try {
-      const call = editId ? adminTemplateAPI.update(editId, payload) : adminTemplateAPI.create(payload);
-      await call;
-      notify(editId ? "Template updated!" : "Template created!");
-      setShowForm(false);
-      setForm(emptyForm);
-      setEditId(null);
-      loadData();
-    } catch {
-      notify("Failed to save.", "red");
-    } finally {
-      setSaving(false);
-    }
-  };
+  useEffect(() => {
+    load();
+  }, []);
 
   const startEdit = (template) => {
     setEditId(template.id);
@@ -127,222 +138,222 @@ const AdminTemplatesPage = () => {
       planLevel: template.planLevel || "FREE",
       layoutId: template.layoutId || "",
       defaultThemeId: template.defaultThemeId || "",
-      supportedSections: template.supportedSections || [],
-      requiredSections: template.requiredSections || [],
-      targetAudiences: template.targetAudiences || ["FREELANCER"],
-      professionTags: template.professionTags?.join(", ") || "",
       primaryMood: template.primaryMood || "CLEAN_MINIMAL",
       featured: !!template.featured,
       isNew: !!template.isNew,
-      active: typeof template.active === "boolean" ? template.active : true,
+      active: template.active !== false,
+      globallySelectable: template.globallySelectable !== false,
+      premiumRank: template.premiumRank ?? 10,
+      targetAudiences: stringifyList(template.targetAudiences),
+      supportedProfessionCategories: stringifyList(template.supportedProfessionCategories),
+      supportedProfessionTypes: stringifyList(template.supportedProfessionTypes),
+      supportedContentModes: stringifyList(template.supportedContentModes),
+      supportedBlockTypes: stringifyList(template.supportedBlockTypes),
+      recommendedBlockTypes: stringifyList(template.recommendedBlockTypes),
+      supportedMotionPresets: stringifyList(template.supportedMotionPresets),
     });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDeactivate = (id) => {
-    if (!window.confirm("Soft delete this template?")) return;
-    adminTemplateAPI.deactivate(id)
-      .then(() => { notify("Deactivated.", "red"); loadData(); })
-      .catch(() => notify("Failed.", "red"));
+  const applyPreset = (preset) => {
+    setForm((previous) => ({
+      ...previous,
+      ...preset,
+      targetAudiences: stringifyList(preset.targetAudiences),
+      supportedProfessionCategories: stringifyList(preset.supportedProfessionCategories),
+      supportedProfessionTypes: stringifyList(preset.supportedProfessionTypes),
+      supportedContentModes: stringifyList(preset.supportedContentModes),
+      supportedBlockTypes: stringifyList(preset.supportedBlockTypes),
+      recommendedBlockTypes: stringifyList(preset.recommendedBlockTypes),
+      supportedMotionPresets: stringifyList(preset.supportedMotionPresets),
+    }));
+    setShowForm(true);
   };
 
-  const toggleSection = (section, isRequiredList) => {
-    const listName = isRequiredList ? "requiredSections" : "supportedSections";
-    const current = form[listName] || [];
-    setForm({
-      ...form,
-      [listName]: current.includes(section) ? current.filter((s) => s !== section) : [...current, section],
-    });
+  const handleSave = async () => {
+    if (!form.name.trim() || !form.layoutId || !form.defaultThemeId) {
+      notify("Name, layout, and default theme are required.", "red");
+      return;
+    }
+
+    const payload = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      tagline: form.tagline.trim(),
+      planLevel: form.planLevel,
+      layoutId: form.layoutId,
+      defaultThemeId: form.defaultThemeId,
+      primaryMood: form.primaryMood,
+      featured: !!form.featured,
+      isNew: !!form.isNew,
+      active: !!form.active,
+      globallySelectable: !!form.globallySelectable,
+      premiumRank: Number(form.premiumRank || 0),
+      targetAudiences: parseList(form.targetAudiences),
+      supportedProfessionCategories: parseList(form.supportedProfessionCategories),
+      supportedProfessionTypes: parseList(form.supportedProfessionTypes),
+      supportedContentModes: parseList(form.supportedContentModes),
+      supportedBlockTypes: parseList(form.supportedBlockTypes),
+      recommendedBlockTypes: parseList(form.recommendedBlockTypes),
+      supportedMotionPresets: parseList(form.supportedMotionPresets),
+    };
+
+    setSaving(true);
+    try {
+      if (editId) await adminTemplateAPI.update(editId, payload);
+      else await adminTemplateAPI.create(payload);
+      notify(editId ? "Template updated." : "Template created.");
+      setShowForm(false);
+      setEditId(null);
+      setForm(emptyForm);
+      load();
+    } catch {
+      notify("Template could not be saved.", "red");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const toastCls = {
-    green: "bg-green-50 text-green-700 border border-green-200",
-    red: "bg-red-50 text-red-700 border border-red-200",
+  const handleDeactivate = async (id) => {
+    if (!window.confirm("Disable this template?")) return;
+    try {
+      await adminTemplateAPI.deactivate(id);
+      notify("Template disabled.", "red");
+      load();
+    } catch {
+      notify("Disable failed.", "red");
+    }
   };
 
   return (
     <AdminDashboardLayout
       title="Templates"
-      subtitle="Assemble layouts and themes into user-facing templates"
-      rightAction={
-        <button
-          onClick={() => { setShowForm(true); setEditId(null); setForm(emptyForm); }}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          + New Template
-        </button>
-      }
+      subtitle="Sellable combinations of layout, theme, profession targeting, block support, and premium gating"
+      rightAction={<button onClick={() => { setShowForm(true); setEditId(null); setForm(emptyForm); }} className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">+ New Template</button>}
     >
-      {toast.msg && (
-        <div className={`rounded-lg px-4 py-2.5 text-sm font-medium mb-5 ${toastCls[toast.type] || "bg-blue-50 text-blue-700 border border-blue-200"}`}>{toast.msg}</div>
-      )}
+      {toast.msg ? <div className={`rounded-lg px-4 py-2.5 text-sm font-medium mb-5 ${toast.type === "red" ? "bg-red-50 text-red-700 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>{toast.msg}</div> : null}
 
-      {showForm && (
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400 mb-3">Starter Presets</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {PRESETS.map((preset) => (
+            <button key={preset.name} onClick={() => applyPreset(preset)} className="text-left rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors">
+              <div className="font-semibold text-gray-900 text-sm">{preset.name}</div>
+              <div className="text-xs text-gray-500 mt-1">{preset.tagline}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {showForm ? (
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-          <h2 className="font-bold text-gray-900 text-base mb-5 pb-4 border-b border-gray-100">
-            {editId ? "Edit Template" : "New Template"}
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <h2 className="font-bold text-gray-900 text-base mb-5 pb-4 border-b border-gray-100">{editId ? "Edit Template" : "New Template"}</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Template Name</label>
-                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Modern Executive" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Tagline</label>
-                <input value={form.tagline} onChange={(e) => setForm({ ...form, tagline: e.target.value })} placeholder="Short punchy phrase" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Description</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Profession Tags</label>
-                <input value={form.professionTags} onChange={(e) => setForm({ ...form, professionTags: e.target.value })} placeholder="designer, developer, lawyer" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              <Field label="Template Name"><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} /></Field>
+              <Field label="Tagline"><input value={form.tagline} onChange={(e) => setForm({ ...form, tagline: e.target.value })} className={inputCls} /></Field>
+              <Field label="Description"><textarea rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputCls} /></Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Plan Level"><select value={form.planLevel} onChange={(e) => setForm({ ...form, planLevel: e.target.value })} className={inputCls}>{PLAN_OPTIONS.map((value) => <option key={value} value={value}>{value}</option>)}</select></Field>
+                <Field label="Primary Mood"><select value={form.primaryMood} onChange={(e) => setForm({ ...form, primaryMood: e.target.value })} className={inputCls}>{MOOD_OPTIONS.map((value) => <option key={value} value={value}>{value.replace(/_/g, " ")}</option>)}</select></Field>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Plan Level</label>
-                  <select value={form.planLevel} onChange={(e) => setForm({ ...form, planLevel: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white focus:ring-2 focus:ring-blue-500">
-                    {PLAN_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Primary Mood</label>
-                  <select value={form.primaryMood} onChange={(e) => setForm({ ...form, primaryMood: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white focus:ring-2 focus:ring-blue-500">
-                    {MOOD_OPTIONS.map((mood) => <option key={mood} value={mood}>{mood.replace(/_/g, " ")}</option>)}
-                  </select>
-                </div>
+                <Field label="Layout"><select value={form.layoutId} onChange={(e) => setForm({ ...form, layoutId: e.target.value })} className={inputCls}><option value="">Select layout</option>{layouts.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.layoutType})</option>)}</select></Field>
+                <Field label="Default Theme"><select value={form.defaultThemeId} onChange={(e) => setForm({ ...form, defaultThemeId: e.target.value })} className={inputCls}><option value="">Select theme</option>{themes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
               </div>
-              <div className="flex gap-4 pt-2">
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} className="rounded text-blue-600 focus:ring-blue-500" />Featured Badge</label>
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="checkbox" checked={form.isNew} onChange={(e) => setForm({ ...form, isNew: e.target.checked })} className="rounded text-blue-600 focus:ring-blue-500" />New Badge</label>
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="rounded text-blue-600 focus:ring-blue-500" />Active</label>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Premium Rank"><input type="number" value={form.premiumRank} onChange={(e) => setForm({ ...form, premiumRank: e.target.value })} className={inputCls} /></Field>
+                <Field label="Target Audiences"><input value={form.targetAudiences} onChange={(e) => setForm({ ...form, targetAudiences: e.target.value })} placeholder="FREELANCER, CREATOR" className={inputCls} /></Field>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Attach Layout</label>
-                <select value={form.layoutId} onChange={(e) => setForm({ ...form, layoutId: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white focus:ring-2 focus:ring-blue-500">
-                  <option value="">-- Select Layout --</option>
-                  {layouts.map((layout) => <option key={layout.id} value={layout.id}>{layout.name} ({layout.layoutType})</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Attach Default Theme</label>
-                <select value={form.defaultThemeId} onChange={(e) => setForm({ ...form, defaultThemeId: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white focus:ring-2 focus:ring-blue-500">
-                  <option value="">-- Select Theme --</option>
-                  {themes.map((theme) => <option key={theme.id} value={theme.id}>{theme.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Supported Sections</label>
-                <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100 max-h-40 overflow-y-auto">
-                  {SECTION_OPTIONS.map((section) => {
-                    const isSelected = form.supportedSections.includes(section);
-                    return (
-                      <button key={section} type="button" onClick={() => toggleSection(section, false)} className={`text-[10px] font-bold px-2 py-1 rounded-full border transition-colors ${isSelected ? "bg-blue-100 text-blue-700 border-blue-200" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-100"}`}>
-                        {isSelected ? "Selected " : "+ "}{section}
-                      </button>
-                    );
-                  })}
-                </div>
+              <Field label="Profession Categories"><input list="categories" value={form.supportedProfessionCategories} onChange={(e) => setForm({ ...form, supportedProfessionCategories: e.target.value })} placeholder="TECH_ENGINEERING, DESIGN_CREATIVE" className={inputCls} /></Field>
+              <Field label="Profession Types"><input list="professions" value={form.supportedProfessionTypes} onChange={(e) => setForm({ ...form, supportedProfessionTypes: e.target.value })} placeholder="SOFTWARE_ENGINEER, PHOTOGRAPHER" className={inputCls} /></Field>
+              <Field label="Supported Content Modes"><input list="contentModes" value={form.supportedContentModes} onChange={(e) => setForm({ ...form, supportedContentModes: e.target.value })} placeholder="RESUME_FIRST, CASE_STUDY_FIRST" className={inputCls} /></Field>
+              <Field label="Supported Block Types"><textarea rows={3} value={form.supportedBlockTypes} onChange={(e) => setForm({ ...form, supportedBlockTypes: e.target.value })} placeholder="RICH_TEXT, CTA, GALLERY" className={inputCls} /></Field>
+              <Field label="Recommended Block Types"><input list="blockTypes" value={form.recommendedBlockTypes} onChange={(e) => setForm({ ...form, recommendedBlockTypes: e.target.value })} placeholder="CASE_STUDY, METRICS" className={inputCls} /></Field>
+              <Field label="Supported Motion Presets"><input list="motions" value={form.supportedMotionPresets} onChange={(e) => setForm({ ...form, supportedMotionPresets: e.target.value })} placeholder="SUBTLE, EDITORIAL" className={inputCls} /></Field>
+              <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 pt-2">
+                <label className="flex items-center gap-2"><input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} /> Featured</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={form.isNew} onChange={(e) => setForm({ ...form, isNew: e.target.checked })} /> New</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Active</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={form.globallySelectable} onChange={(e) => setForm({ ...form, globallySelectable: e.target.checked })} /> Globally Selectable</label>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-2 mt-5 pt-4 border-t border-gray-100">
+          <datalist id="categories">{CATEGORY_OPTIONS.map((value) => <option key={value} value={value} />)}</datalist>
+          <datalist id="professions">{PROFESSION_OPTIONS.map((value) => <option key={value} value={value} />)}</datalist>
+          <datalist id="contentModes">{CONTENT_MODE_OPTIONS.map((value) => <option key={value} value={value} />)}</datalist>
+          <datalist id="blockTypes">{BLOCK_TYPE_OPTIONS.map((value) => <option key={value} value={value} />)}</datalist>
+          <datalist id="motions">{MOTION_OPTIONS.map((value) => <option key={value} value={value} />)}</datalist>
+
+          <div className="flex gap-2 mt-6 pt-4 border-t border-gray-100">
             <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">{saving ? "Saving..." : editId ? "Update Template" : "Create Template"}</button>
-            <button onClick={() => { setShowForm(false); setEditId(null); }} className="px-5 py-2.5 bg-gray-100 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+            <button onClick={() => { setShowForm(false); setEditId(null); setForm(emptyForm); }} className="px-5 py-2.5 bg-gray-100 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {loading && <p className="text-gray-400 text-sm">Loading templates...</p>}
+      {loading ? <p className="text-gray-400 text-sm">Loading templates...</p> : null}
+      {!loading && templates.length === 0 ? <div className="text-center py-20 text-gray-500">No templates yet. Use the starter presets above to assemble new premium templates safely.</div> : null}
 
-      {!loading && templates.length === 0 && (
-        <div className="text-center py-20">
-          <div className="text-4xl mb-3">Templates</div>
-          <p className="text-gray-400 font-medium">No templates assembled yet.</p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         {templates.map((template) => {
-          const layout = layouts.find((entry) => entry.id === template.layoutId);
-          const theme = themes.find((entry) => entry.id === template.defaultThemeId);
+          const layout = layouts.find((item) => item.id === template.layoutId);
+          const theme = themes.find((item) => item.id === template.defaultThemeId);
           return (
-            <div key={template.id} className={`bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col ${!template.active ? "opacity-60" : ""}`}>
-              <div className="relative border-b border-gray-100 bg-gray-50">
-                {template.previewImageUrl ? (
-                  <img src={template.previewImageUrl} alt={template.name} className="w-full h-48 object-cover object-top" />
-                ) : (
-                  <div className="h-48 p-3">
-                    <TemplateCardPreview template={template} layout={layout} theme={theme} />
+            <article key={template.id} className={`bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all ${template.active === false ? "opacity-60" : ""}`}>
+              <div className="relative p-4 border-b border-gray-100 bg-gradient-to-br from-stone-50 to-stone-100">
+                <div className="rounded-xl border border-stone-200 bg-white p-4 min-h-[150px]">
+                  <div className="h-8 rounded-lg" style={{ background: theme?.colorPalette?.primary || "#1F2937" }} />
+                  <div className="grid grid-cols-2 gap-3 mt-4">
+                    <div className="rounded-lg h-20" style={{ background: theme?.colorPalette?.pageBackground || "#F6F1E7" }} />
+                    <div className="rounded-lg h-20" style={{ background: theme?.colorPalette?.surfaceBackground || "#FFFFFF" }} />
                   </div>
-                )}
+                </div>
                 <div className="absolute top-3 left-3 flex gap-2">
-                  {template.featured && <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200"><Star size={10} /> Featured</span>}
-                  {template.isNew && <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200"><Sparkles size={10} /> New</span>}
+                  {template.featured ? <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200"><Star size={10} /> Featured</span> : null}
+                  {template.isNew ? <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200"><Sparkles size={10} /> New</span> : null}
                 </div>
-                {template.planLevel !== "FREE" && <div className="absolute top-3 right-3 inline-flex items-center justify-center p-1.5 bg-purple-100 text-purple-700 rounded-md" title={template.planLevel}><Lock size={12} /></div>}
+                {template.planLevel !== "FREE" ? <div className="absolute top-3 right-3 inline-flex items-center justify-center p-1.5 bg-purple-100 text-purple-700 rounded-md" title={template.planLevel}><Lock size={12} /></div> : null}
               </div>
-              <div className="p-5 flex flex-col flex-grow">
-                <h3 className="font-bold text-gray-900 text-base leading-tight truncate pr-2">{template.name}</h3>
-                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{template.tagline || template.description || "No description"}</p>
-                <div className="mt-4 bg-gray-50/60 rounded-xl p-3 text-[11px] text-gray-600 space-y-2">
-                  <div className="flex justify-between gap-2"><span className="font-medium text-gray-400">Layout</span><span className="truncate text-right">{layout?.name || "Missing layout"}</span></div>
-                  <div className="flex justify-between gap-2"><span className="font-medium text-gray-400">Theme</span><span className="truncate text-right">{theme?.name || "Missing theme"}</span></div>
-                  <div className="flex justify-between gap-2"><span className="font-medium text-gray-400">Sections</span><span>{template.supportedSections?.length || 0}</span></div>
+              <div className="p-5">
+                <div className="flex justify-between gap-3 items-start">
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-base leading-tight">{template.name}</h3>
+                    <p className="text-xs text-gray-500 mt-1">{template.tagline || template.description || "No description"}</p>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-500">{template.planLevel}</span>
                 </div>
-                <div className="mt-auto pt-4 flex gap-2">
-                  <button onClick={() => startEdit(template)} className="flex-1 py-1.5 text-xs font-semibold bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
-                  {template.active && <button onClick={() => handleDeactivate(template.id)} className="flex-1 py-1.5 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Disable</button>}
+                <div className="mt-4 rounded-xl bg-gray-50 p-3 text-[11px] text-gray-600 space-y-1.5">
+                  <div>Layout: {layout?.name || "Missing layout"}</div>
+                  <div>Theme: {theme?.name || "Missing theme"}</div>
+                  <div>Categories: {(template.supportedProfessionCategories || []).slice(0, 2).join(", ") || "-"}</div>
+                  <div>Modes: {(template.supportedContentModes || []).slice(0, 2).join(", ") || "-"}</div>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <button onClick={() => startEdit(template)} className="flex-1 py-2 text-xs font-semibold bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
+                  <button onClick={() => handleDeactivate(template.id)} className="flex-1 py-2 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Disable</button>
                 </div>
               </div>
-            </div>
+            </article>
           );
         })}
       </div>
     </AdminDashboardLayout>
   );
-};
+}
 
-function TemplateCardPreview({ template, layout, theme }) {
-  const palette = theme?.colorPalette || {};
-  const typography = theme?.typography || {};
-  const effects = theme?.effects || {};
-  const layoutType = layout?.layoutType || template?.layout?.layoutType || "SINGLE_COLUMN";
-  const background = palette.pageBackground || "#f8f5ef";
-  const surface = palette.surfaceBackground || "#ffffff";
-  const primary = palette.primary || "#1f2937";
-  const accent = palette.accent || "#c08457";
-  const text = palette.textPrimary || "#111827";
-  const divider = palette.dividerColor || "rgba(17,24,39,0.1)";
-  const radius = effects.cardBorderRadius || "18px";
-  const isSidebar = ["LEFT_SIDEBAR", "RIGHT_SIDEBAR"].includes(layoutType);
-  const sidebarFirst = layoutType === "LEFT_SIDEBAR";
-  const isGrid = ["MODERN_GRID", "MASONRY_GRID", "BENTO_GRID", "DASHBOARD_PANEL", "GALLERY_FOCUS"].includes(layoutType);
-
+function Field({ label, children }) {
   return (
-    <div style={{ height: "100%", borderRadius: radius, background, border: `1px solid ${divider}`, overflow: "hidden", boxShadow: "0 8px 18px rgba(15,23,42,0.08)" }}>
-      <div style={{ background: primary, color: "#fff", padding: "12px 14px" }}>
-        <div style={{ fontFamily: typography.headingFont || "serif", fontSize: 14, fontWeight: 700 }}>{template.name}</div>
-        <div style={{ fontSize: 9, opacity: 0.72, marginTop: 4 }}>{template.tagline || template.primaryMood?.replace(/_/g, " ")}</div>
-      </div>
-      <div style={{ padding: 12, display: "flex", flexDirection: isSidebar ? (sidebarFirst ? "row" : "row-reverse") : "column", gap: 10, height: "calc(100% - 58px)" }}>
-        {isSidebar && <div style={{ width: "28%", borderRadius: 12, background: surface, border: `1px solid ${divider}`, padding: 8 }}><div style={{ height: 6, width: "70%", background: accent, borderRadius: 999, marginBottom: 6 }} /><div style={{ height: 4, width: "90%", background: `${text}22`, borderRadius: 999, marginBottom: 4 }} /><div style={{ height: 4, width: "65%", background: `${text}22`, borderRadius: 999 }} /></div>}
-        <div style={{ flex: 1, display: "grid", gridTemplateColumns: isGrid ? "1fr 1fr" : "1fr", gap: 8 }}>
-          {[0, 1, 2, 3].map((index) => (
-            <div key={index} style={{ borderRadius: 12, background: surface, border: `1px solid ${divider}`, padding: 8 }}><div style={{ height: 6, width: `${60 + index * 7}%`, background: primary, borderRadius: 999, marginBottom: 6, opacity: 0.85 }} /><div style={{ height: 4, width: "100%", background: `${text}1f`, borderRadius: 999, marginBottom: 4 }} /><div style={{ height: 4, width: `${75 + index * 4}%`, background: `${text}1f`, borderRadius: 999 }} /></div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <label className="block">
+      <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{label}</span>
+      {children}
+    </label>
   );
 }
 
-export default AdminTemplatesPage;
+const inputCls = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white focus:ring-2 focus:ring-blue-500";

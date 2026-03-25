@@ -1,196 +1,170 @@
-/**
- * StepBasicInfo.jsx
- * Step 1 of Resume Creation Studio
- * Fields: title, professionType
- * Matches CreateResumeRequest: { templateId, title, professionType, themeOverrideId? }
- * This step handles: title + professionType
- */
-
-const PROFESSION_SUGGESTIONS = [
-  "Software Engineer",
-  "Full Stack Developer",
-  "Frontend Developer",
-  "Backend Developer",
-  "UI/UX Designer",
-  "Product Designer",
-  "Graphic Designer",
-  "Data Scientist",
-  "Machine Learning Engineer",
-  "DevOps Engineer",
-  "Cloud Architect",
-  "Product Manager",
-  "Project Manager",
-  "Business Analyst",
-  "Marketing Manager",
-  "Content Creator",
-  "Photographer",
-  "Videographer",
-  "Illustrator",
-  "Motion Designer",
-  "Architect",
-  "Civil Engineer",
-  "Mechanical Engineer",
-  "Financial Analyst",
-  "Investment Banker",
-  "Consultant",
-  "Doctor",
-  "Nurse",
-  "Therapist",
-  "Lawyer",
-  "Researcher",
-  "Academic",
-  "Freelancer",
-  "Entrepreneur",
-  "Founder",
-  "Coach",
-  "Speaker",
-  "Student",
+const PROFESSION_GROUPS = [
+  {
+    category: "TECH_ENGINEERING",
+    label: "Tech & Engineering",
+    professions: [
+      ["SOFTWARE_ENGINEER", "Software Engineer"],
+      ["FRONTEND_DEVELOPER", "Frontend Developer"],
+      ["BACKEND_DEVELOPER", "Backend Developer"],
+      ["FULL_STACK_DEVELOPER", "Full Stack Developer"],
+      ["DATA_SCIENTIST", "Data Scientist"],
+      ["MACHINE_LEARNING_ENGINEER", "ML Engineer"],
+    ],
+  },
+  {
+    category: "DESIGN_CREATIVE",
+    label: "Design & Creative",
+    professions: [
+      ["UX_DESIGNER", "UX Designer"],
+      ["UI_DESIGNER", "UI Designer"],
+      ["GRAPHIC_DESIGNER", "Graphic Designer"],
+      ["PRODUCT_DESIGNER", "Product Designer"],
+      ["ILLUSTRATOR", "Illustrator"],
+      ["MOTION_DESIGNER", "Motion Designer"],
+    ],
+  },
+  {
+    category: "PHOTOGRAPHY_FILM",
+    label: "Photo & Film",
+    professions: [
+      ["PHOTOGRAPHER", "Photographer"],
+      ["VIDEOGRAPHER", "Videographer"],
+      ["FILMMAKER", "Filmmaker"],
+      ["DOCUMENTARY_CREATOR", "Documentary Creator"],
+    ],
+  },
+  {
+    category: "HEALTHCARE_MEDICAL",
+    label: "Healthcare",
+    professions: [
+      ["DOCTOR", "Doctor"],
+      ["NURSE", "Nurse"],
+      ["THERAPIST", "Therapist"],
+      ["HEALTHCARE_CONSULTANT", "Healthcare Consultant"],
+    ],
+  },
+  {
+    category: "FINANCE_BUSINESS",
+    label: "Business & Finance",
+    professions: [
+      ["CONSULTANT", "Consultant"],
+      ["FINANCIAL_ANALYST", "Financial Analyst"],
+      ["ACCOUNTANT", "Accountant"],
+      ["PRODUCT_MANAGER", "Product Manager"],
+    ],
+  },
+  {
+    category: "WRITING_PUBLISHING",
+    label: "Writing & Publishing",
+    professions: [
+      ["WRITER", "Writer"],
+      ["CONTENT_STRATEGIST", "Content Strategist"],
+      ["JOURNALIST", "Journalist"],
+      ["RESEARCHER", "Researcher"],
+    ],
+  },
 ];
 
 const TITLE_EXAMPLES = [
-  "My Creative Portfolio",
-  "Professional Resume 2024",
-  "Design & Development Portfolio",
-  "Senior Engineer Portfolio",
-  "Full Stack Developer Resume",
-  "Photography Portfolio",
-  "UX Design Showcase",
-  "Data Science Portfolio",
+  "Modern professional portfolio",
+  "Case-study portfolio",
+  "Cinematic portfolio",
+  "Minimal consulting profile",
+  "Editorial personal site",
+  "Creative work archive",
 ];
 
-const iBase = {
+const ALL_PROFESSIONS = PROFESSION_GROUPS.flatMap((group) => group.professions.map(([value, label]) => ({
+  value,
+  label,
+  category: group.category,
+  categoryLabel: group.label,
+})));
+
+const inputBase = {
   width: "100%",
   border: "1.5px solid #E5E3DE",
-  borderRadius: 10,
-  padding: "11px 14px",
+  borderRadius: 12,
+  padding: "12px 14px",
   fontSize: 13,
   color: "#1C1C1C",
   outline: "none",
   background: "#FAFAF8",
   fontFamily: "'DM Sans', sans-serif",
-  transition: "border-color 0.18s",
-  display: "block",
   boxSizing: "border-box",
 };
 
 export default function StepBasicInfo({ cfg, set }) {
-  const filtered = cfg.professionType
-    ? PROFESSION_SUGGESTIONS.filter((p) =>
-        p.toLowerCase().includes(cfg.professionType.toLowerCase())
-      ).slice(0, 6)
-    : [];
+  const selectedProfession = ALL_PROFESSIONS.find((item) => item.value === cfg.professionType);
 
   return (
     <div style={{ animation: "studioFadeUp 0.32s both" }}>
-      {/* Title */}
-      <div style={{ marginBottom: 22 }}>
-        <div style={s.label}>
-          Portfolio Title <span style={{ color: "#B43C3C" }}>*</span>
-        </div>
-        <div style={s.hint}>Give your portfolio a unique name</div>
+      <div style={{ marginBottom: 24 }}>
+        <div style={s.label}>Portfolio Title <span style={{ color: "#B43C3C" }}>*</span></div>
+        <div style={s.hint}>This becomes the working name inside your dashboard.</div>
         <input
           value={cfg.title}
-          onChange={(e) => set("title", e.target.value)}
-          placeholder='e.g. "My Creative Portfolio"'
+          onChange={(event) => set("title", event.target.value)}
+          placeholder="e.g. Rohan Das portfolio"
           maxLength={80}
-          style={{
-            ...iBase,
-            fontSize: 14,
-            fontWeight: 500,
-            borderColor: cfg.title ? "#1C1C1C" : "#E5E3DE",
-          }}
+          style={{ ...inputBase, borderColor: cfg.title ? "#1C1C1C" : "#E5E3DE" }}
         />
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-          {TITLE_EXAMPLES.map((ex) => (
+          {TITLE_EXAMPLES.map((example) => (
             <button
-              key={ex}
-              onClick={() => set("title", ex)}
-              style={{
-                ...s.chip,
-                background: cfg.title === ex ? "#1C1C1C" : "#F0EDE6",
-                color: cfg.title === ex ? "#F0EDE6" : "#5A5550",
-              }}
+              key={example}
+              type="button"
+              onClick={() => set("title", example)}
+              style={{ ...s.chip, background: cfg.title === example ? "#1C1C1C" : "#F0EDE6", color: cfg.title === example ? "#F7F2E8" : "#5A5550" }}
             >
-              {ex}
+              {example}
             </button>
           ))}
         </div>
-        <div style={s.charCount}>{cfg.title.length}/80</div>
       </div>
 
-      {/* Profession Type */}
-      <div style={{ marginBottom: 8 }}>
-        <div style={s.label}>
-          Your Profession <span style={{ color: "#B43C3C" }}>*</span>
-        </div>
-        <div style={s.hint}>
-          This helps us recommend the right templates for you
-        </div>
-        <div style={{ position: "relative" }}>
-          <input
-            value={cfg.professionType}
-            onChange={(e) => set("professionType", e.target.value)}
-            placeholder='e.g. "Software Engineer", "Photographer"…'
-            style={{
-              ...iBase,
-              borderColor: cfg.professionType ? "#1C1C1C" : "#E5E3DE",
-            }}
-          />
-          {/* Autocomplete dropdown */}
-          {filtered.length > 0 && cfg.professionType.length > 1 && (
-            <div style={s.dropdown}>
-              {filtered.map((p) => (
-                <div
-                  key={p}
-                  onClick={() => set("professionType", p)}
-                  style={s.dropItem}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#F0EDE6")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "transparent")
-                  }
-                >
-                  {p}
-                </div>
-              ))}
+      <div style={{ marginBottom: 16 }}>
+        <div style={s.label}>Profession <span style={{ color: "#B43C3C" }}>*</span></div>
+        <div style={s.hint}>Choose the closest profession so we can suggest stronger templates and layout behavior.</div>
+      </div>
+
+      <div style={{ display: "grid", gap: 12 }}>
+        {PROFESSION_GROUPS.map((group) => (
+          <section key={group.category} style={s.groupCard}>
+            <div style={s.groupHeading}>{group.label}</div>
+            <div style={s.chipGrid}>
+              {group.professions.map(([value, label]) => {
+                const active = cfg.professionType === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => set("professionType", value)}
+                    style={{
+                      ...s.selectChip,
+                      background: active ? "#1C1C1C" : "#fff",
+                      color: active ? "#F7F2E8" : "#2A241E",
+                      borderColor: active ? "#1C1C1C" : "#E5E3DE",
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-          )}
-        </div>
-
-        {/* Popular professions grid */}
-        <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 10, color: "#8A8578", marginBottom: 7, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-            Popular choices
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {[
-              "Software Engineer", "UI/UX Designer", "Photographer",
-              "Product Manager", "Data Scientist", "Freelancer",
-              "Architect", "Content Creator", "Consultant", "Doctor",
-            ].map((p) => (
-              <button
-                key={p}
-                onClick={() => set("professionType", p)}
-                style={{
-                  ...s.chip,
-                  background: cfg.professionType === p ? "#1C1C1C" : "#F0EDE6",
-                  color: cfg.professionType === p ? "#F0EDE6" : "#5A5550",
-                  fontSize: 11,
-                }}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
+          </section>
+        ))}
       </div>
 
-      {/* Validation hint */}
-      {(!cfg.title.trim() || !cfg.professionType.trim()) && (
-        <div style={s.warn}>
-          ⚡ Both title and profession are required to continue
+      {selectedProfession ? (
+        <div style={s.selectionSummary}>
+          <div style={s.summaryTitle}>Selected direction</div>
+          <div style={s.summaryValue}>{selectedProfession.label}</div>
+          <div style={s.summaryMeta}>Category: {selectedProfession.categoryLabel}</div>
+          <div style={s.summaryMeta}>Next we�ll recommend templates, themes, and motion presets around this choice.</div>
         </div>
+      ) : (
+        <div style={s.warn}>Choose a profession to unlock recommendations in the next step.</div>
       )}
     </div>
   );
@@ -201,9 +175,8 @@ const s = {
     fontSize: 12,
     fontWeight: 700,
     color: "#1C1C1C",
-    marginBottom: 3,
+    marginBottom: 4,
     fontFamily: "'DM Sans', sans-serif",
-    letterSpacing: "-0.01em",
   },
   hint: {
     fontSize: 10.5,
@@ -213,47 +186,76 @@ const s = {
   },
   chip: {
     border: "none",
-    borderRadius: 20,
-    padding: "4px 11px",
+    borderRadius: 999,
+    padding: "5px 12px",
     fontSize: 11,
     cursor: "pointer",
     fontFamily: "'DM Sans', sans-serif",
-    transition: "all 0.15s",
   },
-  charCount: {
-    fontSize: 9.5,
-    color: "#B0AB9E",
-    textAlign: "right",
-    marginTop: 4,
+  groupCard: {
+    border: "1px solid #ECE6DA",
+    borderRadius: 16,
+    background: "linear-gradient(180deg, #FFFEFC 0%, #F8F3EB 100%)",
+    padding: 14,
+  },
+  groupHeading: {
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: "0.12em",
+    color: "#8A8578",
+    fontWeight: 700,
+    marginBottom: 10,
     fontFamily: "'DM Sans', sans-serif",
   },
-  dropdown: {
-    position: "absolute",
-    top: "calc(100% + 4px)",
-    left: 0,
-    right: 0,
-    background: "#fff",
-    border: "1.5px solid #E5E3DE",
-    borderRadius: 10,
-    zIndex: 50,
-    boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
-    overflow: "hidden",
+  chipGrid: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
   },
-  dropItem: {
-    padding: "9px 14px",
-    fontSize: 12,
-    color: "#1C1C1C",
+  selectChip: {
+    border: "1px solid #E5E3DE",
+    borderRadius: 999,
+    padding: "8px 12px",
+    fontSize: 11.5,
+    fontWeight: 600,
     cursor: "pointer",
-    transition: "background 0.12s",
     fontFamily: "'DM Sans', sans-serif",
+    transition: "all 0.18s ease",
+  },
+  selectionSummary: {
+    marginTop: 16,
+    borderRadius: 14,
+    background: "#EEF6FF",
+    border: "1px solid #CFE2FF",
+    padding: 14,
+    fontFamily: "'DM Sans', sans-serif",
+  },
+  summaryTitle: {
+    fontSize: 10,
+    textTransform: "uppercase",
+    letterSpacing: "0.12em",
+    color: "#5779A3",
+    fontWeight: 700,
+    marginBottom: 6,
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: "#1C1C1C",
+    marginBottom: 4,
+  },
+  summaryMeta: {
+    fontSize: 11,
+    color: "#607086",
+    lineHeight: 1.45,
   },
   warn: {
     marginTop: 14,
-    padding: "9px 13px",
-    borderRadius: 9,
-    background: "rgba(180,60,60,0.07)",
+    padding: "10px 12px",
+    borderRadius: 10,
+    background: "rgba(180,60,60,0.08)",
     border: "1px solid rgba(180,60,60,0.18)",
-    fontSize: 11,
+    fontSize: 11.2,
     color: "#B43C3C",
     fontFamily: "'DM Sans', sans-serif",
   },
