@@ -403,7 +403,7 @@ const DEF = {
   borderColor: "#D5D3CE",
   dividerColor: "#E5E3DE",
   glowColor: "#4A6FA5",
-  shadowColor: "rgba(0,0,0,0.15)",
+  shadowColor: "#000000",
   tagBackground: "#E5E8F0",
   tagText: "#4A6FA5",
   // background
@@ -755,59 +755,66 @@ const SSelect = ({ label, val, onChange, options, sub }) => (
   </div>
 );
 
-const CPicker = ({ val, onChange, label }) => (
-  <div
-    style={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 4,
-    }}
-  >
-    <div style={{ position: "relative", width: 40, height: 40 }}>
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          background: val,
-          border: "2.5px solid rgba(0,0,0,0.08)",
-          boxShadow: `0 2px 10px ${val}55`,
-          cursor: "pointer",
-          transition: "box-shadow 0.2s",
-        }}
-      />
-      <input
-        type="color"
-        value={val}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          position: "absolute",
-          inset: 0,
-          opacity: 0,
-          cursor: "pointer",
-          width: "100%",
-          height: "100%",
-          border: "none",
-        }}
-      />
-    </div>
-    {label && (
-      <div
-        style={{
-          fontSize: 9,
-          color: "#64748b",
-          textAlign: "center",
-          maxWidth: 44,
-          lineHeight: 1.3,
-          fontFamily: "system-ui",
-        }}
-      >
-        {label}
+const normalizePickerColor = (value) => (/^#[0-9a-fA-F]{6}$/.test(value || "") ? value : "#000000");
+
+
+const CPicker = ({ val, onChange, label }) => {
+  const colorValue = normalizePickerColor(val);
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 4,
+      }}
+    >
+      <div style={{ position: "relative", width: 40, height: 40 }}>
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            background: colorValue,
+            border: "2.5px solid rgba(0,0,0,0.08)",
+            boxShadow: `0 2px 10px ${colorValue}55`,
+            cursor: "pointer",
+            transition: "box-shadow 0.2s",
+          }}
+        />
+        <input
+          type="color"
+          value={colorValue}
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            position: "absolute",
+            inset: 0,
+            opacity: 0,
+            cursor: "pointer",
+            width: "100%",
+            height: "100%",
+            border: "none",
+          }}
+        />
       </div>
-    )}
-  </div>
-);
+      {label && (
+        <div
+          style={{
+            fontSize: 9,
+            color: "#64748b",
+            textAlign: "center",
+            maxWidth: 44,
+            lineHeight: 1.3,
+            fontFamily: "system-ui",
+          }}
+        >
+          {label}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const BtnPrimary = ({ children, onClick, disabled, style = {} }) => (
   <button

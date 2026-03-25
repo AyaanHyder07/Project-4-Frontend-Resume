@@ -79,9 +79,9 @@ const SECTION_SOURCES = [
   { config: "CERTIFICATIONS", preview: "CERTIFICATIONS", load: certificationAPI.getAll },
   { config: "PUBLICATIONS", preview: "PUBLICATIONS", load: publicationAPI.getAll },
   { config: "TESTIMONIALS", preview: "TESTIMONIALS", load: testimonialAPI.getAll },
-  { config: "SERVICE_OFFERINGS", preview: "SERVICES", load: serviceAPI.getAll },
-  { config: "EXHIBITIONS_AWARDS", preview: "EXHIBITIONS", load: exhibitionAPI.getAll },
-  { config: "BLOG_POSTS", preview: "BLOGS", load: blogAPI.getAll },
+  { config: "SERVICE_OFFERINGS", preview: "SERVICE_OFFERINGS", load: serviceAPI.getAll },
+  { config: "EXHIBITIONS_AWARDS", preview: "EXHIBITIONS_AWARDS", load: exhibitionAPI.getAll },
+  { config: "BLOG_POSTS", preview: "BLOG_POSTS", load: blogAPI.getAll },
   { config: "MEDIA_APPEARANCES", preview: "MEDIA_APPEARANCES", load: mediaAPI.getAll },
   { config: "FINANCIAL_CREDENTIALS", preview: "FINANCIAL_CREDENTIALS", load: financialAPI.getAll },
 ];
@@ -164,6 +164,12 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
           if (config?.customTitle) sectionTitles[source.preview] = config.customTitle;
         });
 
+        const contactConfig = configMap.get("CONTACT");
+        if (contactConfig?.enabled !== false) {
+          sections.CONTACT = { resumeId };
+          if (contactConfig?.customTitle) sectionTitles.CONTACT = contactConfig.customTitle;
+        }
+
         setState({
           loading: false,
           profile,
@@ -191,7 +197,8 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
     layout: state.layout,
     theme: state.theme,
     sections: state.sections,
-  }), [resume, state.layout, state.theme, state.sections]);
+    sectionTitles: state.sectionTitles,
+  }), [resume, state.layout, state.theme, state.sections, state.sectionTitles]);
 
   const stamp = state.lastUpdated
     ? state.lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })

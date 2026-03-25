@@ -4,23 +4,11 @@ import {
   ArrowLeft, Pencil, Save, X, ToggleLeft,
   ToggleRight, Loader2, RefreshCw, ChevronUp, ChevronDown
 } from "lucide-react";
+import { adminPlansAPI } from "../../api/api";
 
-/* ─── Admin API stubs (swap with your real adminAPI / axiosInstance) ── */
 const adminAPI = {
-  getAllPlans: () =>
-    fetch("/api/admin/plans", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    }).then((r) => r.json()),
-
-  updatePlan: (planType, body) =>
-    fetch(`/api/admin/plans/${planType}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify(body),
-    }).then((r) => r.json()),
+  getAllPlans: async () => (await adminPlansAPI.getAll()).data,
+  updatePlan: async (planType, body) => (await adminPlansAPI.update(planType, body)).data,
 };
 
 const FIELD_DEFS = [

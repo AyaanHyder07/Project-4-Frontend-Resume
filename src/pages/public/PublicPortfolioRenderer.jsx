@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { contactAPI } from "../../api/api";
 
 const DEFAULT_THEME = {
   colorPalette: {
@@ -39,20 +40,21 @@ const SECTION_LABELS = {
   CERTIFICATIONS: "Certifications",
   PUBLICATIONS: "Publications",
   TESTIMONIALS: "Testimonials",
-  SERVICES: "Services",
-  EXHIBITIONS: "Exhibitions & Awards",
-  BLOGS: "Blog",
-  LANGUAGES: "Languages",
+  SERVICE_OFFERINGS: "Services",
+  EXHIBITIONS_AWARDS: "Exhibitions & Awards",
+  BLOG_POSTS: "Blog Posts",
+  MEDIA_APPEARANCES: "Media Appearances",
+  FINANCIAL_CREDENTIALS: "Financial Credentials",
+  CONTACT: "Contact",
 };
 
-const SIDEBAR_KEYS = new Set(["SKILLS", "CERTIFICATIONS", "LANGUAGES", "SERVICES"]);
+const SIDEBAR_KEYS = new Set(["SKILLS", "CERTIFICATIONS", "SERVICE_OFFERINGS"]);
 
 export function parseLayoutConfig(layout) {
   try {
-    if (!layout?.layoutConfigJson) return {};
-    return typeof layout.layoutConfigJson === "string"
-      ? JSON.parse(layout.layoutConfigJson)
-      : layout.layoutConfigJson;
+    const rawConfig = layout?.structureConfig ?? layout?.layoutConfigJson ?? null;
+    if (!rawConfig) return {};
+    return typeof rawConfig === "string" ? JSON.parse(rawConfig) : rawConfig;
   } catch {
     return {};
   }
@@ -97,13 +99,21 @@ function splitSections(sections) {
   const right = {};
 
   Object.entries(sections || {}).forEach(([key, value]) => {
+    if (key === "CONTACT" && value && typeof value === "object") {
+      right[key] = value;
+      return;
+    }
     if (!Array.isArray(value) || value.length === 0) return;
     if (SIDEBAR_KEYS.has(key)) left[key] = value;
     else right[key] = value;
   });
 
   if (!Object.keys(left).length || !Object.keys(right).length) {
-    const entries = Object.entries(sections || {}).filter(([, value]) => Array.isArray(value) && value.length);
+    const entries = Object.entries(sections || {}).filter(([key, value]) =>
+      key === "CONTACT"
+        ? value && typeof value === "object"
+        : Array.isArray(value) && value.length
+    );
     const midpoint = Math.max(1, Math.ceil(entries.length / 3));
     return {
       left: Object.fromEntries(entries.slice(0, midpoint)),
@@ -163,8 +173,16 @@ export default function PublicPortfolioRenderer({
   profile,
   shellStyle: shellStyleOverride,
   minHeight = "100vh",
-  sectionTitles = {},
+  sectionTitles: sectionTitlesProp = {},
 }) {
+  const [contactForm, setContactForm] = useState({
+    senderName: "",
+    senderEmail: "",
+    senderPhone: "",
+    subject: "",
+    message: "",
+  });
+  const [contactState, setContactState] = useState({ sending: false, error: "", success: "" });
   const theme = useMemo(() => normalizeTheme(portfolio?.theme), [portfolio]);
   const layoutConfig = useMemo(() => parseLayoutConfig(portfolio?.layout), [portfolio]);
 
@@ -191,6 +209,7 @@ export default function PublicPortfolioRenderer({
   const github = profile?.githubUrl;
   const avatar = resolveAssetUrl(profile?.profilePhotoUrl);
   const sectionGroups = splitSections(portfolio?.sections || {});
+  const sectionTitles = portfolio?.sectionTitles || sectionTitlesProp;
   const initials = getInitials(textName);
   const isHeroLayout = ["MODERN_GRID", "GRID", "BOLD_HEADER", "MAGAZINE", "SINGLE_COLUMN"].includes(layoutType);
   const heroBg = isHeroLayout ? colors.primary : colors.surfaceBackground;
@@ -234,6 +253,17 @@ export default function PublicPortfolioRenderer({
 
   const titleFor = (key) => sectionTitles[key] || SECTION_LABELS[key] || key.replace(/_/g, " ");
 
+  useEffect(() => {
+    setContactForm({
+      senderName: "",
+      senderEmail: "",
+      senderPhone: "",
+      subject: "",
+      message: "",
+    });
+    setContactState({ sending: false, error: "", success: "" });
+  }, [portfolio?.resumeId]);
+
   const sectionHeaderStyle = {
     color: colors.accent,
     fontSize: "0.72rem",
@@ -244,6 +274,116 @@ export default function PublicPortfolioRenderer({
     paddingBottom: "0.7rem",
     borderBottom: `1px solid ${colors.dividerColor}`,
   };
+
+  const handleContactChange = (field, value) => {
+    setContactForm((prev) => ({ ...prev, [field]: value }));
+    setContactState((prev) => ({ ...prev, error: "", success: "" }));
+  };
+
+  const handleContactSubmit = async (event) => {
+    event.preventDefault();
+    setContactState({ sending: true, error: "", success: "" });
+    try {
+      await contactAPI.submit({
+        resumeId: portfolio?.resumeId,
+        ...contactForm,
+      });
+      setContactForm({
+        senderName: "",
+        senderEmail: "",
+        senderPhone: "",
+        subject: "",
+        message: "",
+      });
+      setContactState({ sending: false, error: "", success: "Message sent successfully." });
+    } catch (error) {
+      setContactState({
+        sending: false,
+        error: error?.response?.data?.message || error?.message || "Could not send message.",
+        success: "",
+      });
+    }
+  };
+
+  const renderContactSection = (key, sectionValue) => (
+    <section
+      key={key}
+      style={{
+        ...surfaceStyle,
+        padding: "1.4rem 1.5rem",
+        marginBottom: "1rem",
+      }}
+    >
+      <div style={sectionHeaderStyle}>{titleFor(key)}</div>
+      <form onSubmit={handleContactSubmit} style={{ display: "grid", gap: "0.85rem" }}>
+        <div style={{ display: "grid", gap: "0.85rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+          <input
+            value={contactForm.senderName}
+            onChange={(event) => handleContactChange("senderName", event.target.value)}
+            placeholder="Your name"
+            required
+            style={inputStyle(colors)}
+          />
+          <input
+            type="email"
+            value={contactForm.senderEmail}
+            onChange={(event) => handleContactChange("senderEmail", event.target.value)}
+            placeholder="Your email"
+            style={inputStyle(colors)}
+          />
+        </div>
+        <div style={{ display: "grid", gap: "0.85rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+          <input
+            value={contactForm.senderPhone}
+            onChange={(event) => handleContactChange("senderPhone", event.target.value)}
+            placeholder="Phone number"
+            style={inputStyle(colors)}
+          />
+          <input
+            value={contactForm.subject}
+            onChange={(event) => handleContactChange("subject", event.target.value)}
+            placeholder="Subject"
+            required
+            style={inputStyle(colors)}
+          />
+        </div>
+        <textarea
+          value={contactForm.message}
+          onChange={(event) => handleContactChange("message", event.target.value)}
+          placeholder="Tell me about your project or opportunity"
+          required
+          rows={5}
+          style={{ ...inputStyle(colors), resize: "vertical", minHeight: 130 }}
+        />
+        {profile?.email || profile?.phone || profile?.whatsapp ? (
+          <div style={{ fontSize: "0.9rem", color: colors.textSecondary }}>
+            {profile?.email ? `Email: ${profile.email}` : ""}
+            {profile?.phone ? `${profile?.email ? "  •  " : ""}Phone: ${profile.phone}` : ""}
+            {profile?.whatsapp ? `${profile?.email || profile?.phone ? "  •  " : ""}WhatsApp: ${profile.whatsapp}` : ""}
+          </div>
+        ) : null}
+        {contactState.error ? <div style={{ color: "#b42318", fontSize: "0.92rem" }}>{contactState.error}</div> : null}
+        {contactState.success ? <div style={{ color: "#157f3b", fontSize: "0.92rem" }}>{contactState.success}</div> : null}
+        <div>
+          <button
+            type="submit"
+            disabled={contactState.sending || !portfolio?.resumeId || !sectionValue?.resumeId}
+            style={{
+              border: "none",
+              borderRadius: "999px",
+              padding: "0.82rem 1.25rem",
+              background: colors.primary,
+              color: getContrastText(colors.primary, colors.textPrimary, "#fffaf2"),
+              fontWeight: 700,
+              cursor: contactState.sending ? "wait" : "pointer",
+            }}
+          >
+            {contactState.sending ? "Sending..." : "Send message"}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
 
   const renderSectionItems = (key, items) => {
     if (!Array.isArray(items) || !items.length) return null;
@@ -272,7 +412,7 @@ export default function PublicPortfolioRenderer({
       );
     }
 
-    if (key === "PROJECTS" || key === "BLOGS" || key === "TESTIMONIALS" || key === "SERVICES") {
+    if (key === "PROJECTS" || key === "BLOG_POSTS" || key === "TESTIMONIALS" || key === "SERVICE_OFFERINGS") {
       return (
         <div
           style={{
@@ -361,6 +501,9 @@ export default function PublicPortfolioRenderer({
 
   const renderSections = (sectionMap) =>
     Object.entries(sectionMap || {}).map(([key, items]) => {
+      if (key === "CONTACT" && items && typeof items === "object") {
+        return renderContactSection(key, items);
+      }
       if (!Array.isArray(items) || !items.length) return null;
       return (
         <section
@@ -380,14 +523,25 @@ export default function PublicPortfolioRenderer({
   const mainLayout = () => {
     if (layoutType === "LEFT_SIDEBAR" || layoutType === "RIGHT_SIDEBAR") {
       const sidebarFirst = layoutType === "LEFT_SIDEBAR";
+      const contactSection = portfolio?.sections?.CONTACT
+        ? { CONTACT: portfolio.sections.CONTACT }
+        : {};
+      const sourceSidebarSections = sidebarFirst ? sectionGroups.left : sectionGroups.right;
+      const sourceMainSections = sidebarFirst ? sectionGroups.right : sectionGroups.left;
+      const sidebarSections = {
+        ...contactSection,
+        ...sourceSidebarSections,
+      };
+      const mainSections = { ...sourceMainSections };
+      delete mainSections.CONTACT;
       const aside = (
         <aside style={{ flex: "0 0 280px" }}>
-          {renderSections(sidebarFirst ? sectionGroups.left : sectionGroups.right)}
+          {renderSections(sidebarSections)}
         </aside>
       );
       const main = (
         <main style={{ flex: "1 1 0%" }}>
-          {renderSections(sidebarFirst ? sectionGroups.right : sectionGroups.left)}
+          {renderSections(mainSections)}
         </main>
       );
 
@@ -587,4 +741,18 @@ export default function PublicPortfolioRenderer({
       </div>
     </div>
   );
+}
+
+function inputStyle(colors) {
+  return {
+    width: "100%",
+    padding: "0.9rem 1rem",
+    borderRadius: "16px",
+    border: `1px solid ${colors.borderColor}`,
+    background: colors.pageBackground,
+    color: colors.textPrimary,
+    font: "inherit",
+    outline: "none",
+    boxSizing: "border-box",
+  };
 }
