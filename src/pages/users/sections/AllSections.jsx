@@ -54,7 +54,7 @@ const DEF_PROJ = {
   caseStudyUrl:"", featured:false, visibility:"PUBLIC",
 };
 
-export function ProjectsSection({ resumeId, onNotify }) {
+export function ProjectsSection({ resumeId, onNotify, onPreviewDraftChange }) {
   const [items, setItems]   = useState([]);
   const [editing, setEditing]= useState(null);
   const [form, setForm]     = useState({ ...DEF_PROJ });
@@ -74,6 +74,34 @@ export function ProjectsSection({ resumeId, onNotify }) {
 
   useEffect(() => { load(); }, [resumeId]);
 
+  useEffect(() => {
+    if (!onPreviewDraftChange) return;
+    if (editing === null) {
+      onPreviewDraftChange("PROJECTS", null);
+      return;
+    }
+    onPreviewDraftChange("PROJECTS", [{
+      id: editing === "new" ? "draft-project" : editing,
+      title: form.title || "",
+      projectType: form.projectType || "Personal",
+      ndaRestricted: !!form.ndaRestricted,
+      description: form.description || "",
+      keyFeatures: form.keyFeatures ? form.keyFeatures.split("\n").map((s)=>s.trim()).filter(Boolean) : [],
+      roleInProject: form.roleInProject || "",
+      clientName: form.clientName || "",
+      industry: form.industry || "",
+      startDate: form.startDate || null,
+      endDate: form.endDate || null,
+      projectStatus: form.projectStatus || "COMPLETED",
+      technologiesUsed: form.technologiesUsed ? form.technologiesUsed.split(",").map((s)=>s.trim()).filter(Boolean) : [],
+      toolsUsed: form.toolsUsed ? form.toolsUsed.split(",").map((s)=>s.trim()).filter(Boolean) : [],
+      liveUrl: form.liveUrl || "",
+      sourceCodeUrl: form.sourceCodeUrl || "",
+      caseStudyUrl: form.caseStudyUrl || "",
+      featured: !!form.featured,
+      visibility: form.visibility || "PUBLIC",
+    }]);
+  }, [editing, form, onPreviewDraftChange]);
   const handleSave = async () => {
     setError(null); setSaving(true);
     try {
@@ -464,7 +492,7 @@ const CURRENCIES = ["INR","USD","EUR","GBP"].map((v)=>({value:v,label:v}));
 const DURATIONS = ["1 hour","2 hours","1 day","3 days","1 week","2 weeks","1 month","3 months","6 months","Ongoing"].map((v)=>({value:v,label:v}));
 const DEF_SVC = { serviceTitle:"", serviceCategory:"", description:"", pricingModel:"FIXED", basePrice:"", currency:"INR", duration:"1 week", deliverables:"", targetAudience:"", featured:false, visibility:"PUBLIC" };
 
-export function ServicesSection({ resumeId, onNotify }) {
+export function ServicesSection({ resumeId, onNotify, onPreviewDraftChange }) {
   const [items, setItems]   = useState([]);
   const [editing, setEditing]= useState(null);
   const [form, setForm]     = useState({ ...DEF_SVC });

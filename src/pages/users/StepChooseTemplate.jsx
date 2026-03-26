@@ -1,32 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Lock, Sparkles, Star } from "lucide-react";
-import { layoutAPI, templateAPI } from "./resumeStudioAPI";
-
-const MOOD_FILTERS = [
-  ["", "All moods"],
-  ["CLEAN_MINIMAL", "Minimal"],
-  ["CORPORATE_FORMAL", "Corporate"],
-  ["ARTISTIC_EXPRESSIVE", "Creative"],
-  ["LUXURY_ELEGANT", "Luxury"],
-  ["DARK_DRAMATIC", "Dark"],
-  ["FUTURISTIC_TECH", "Tech"],
-];
+import { templateAPI } from "./resumeStudioAPI";
 
 const PLAN_ORDINAL = { FREE: 0, BASIC: 1, PRO: 2, PREMIUM: 3 };
-const CONTENT_MODE_LABELS = {
-  RESUME_FIRST: "Resume-first",
-  PORTFOLIO_FIRST: "Portfolio-first",
-  GALLERY_FIRST: "Gallery-first",
-  CASE_STUDY_FIRST: "Case-study",
-};
 
 export default function StepChooseTemplate({ cfg, set, userPlan }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [mood, setMood] = useState(cfg.primaryMood || "");
-  const [layouts, setLayouts] = useState([]);
   const [recommended, setRecommended] = useState([]);
   const [catalog, setCatalog] = useState([]);
 
@@ -35,13 +17,11 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
     const load = async () => {
       setLoading(true);
       try {
-        const [layoutData, recommendationData, catalogData] = await Promise.all([
-          layoutAPI.getAll().catch(() => []),
-          cfg.professionType ? templateAPI.getRecommendations(cfg.professionType, mood || undefined).catch(() => []) : Promise.resolve([]),
-          templateAPI.getAll({ mood: mood || undefined }).catch(() => []),
+        const [recommendationData, catalogData] = await Promise.all([
+          cfg.professionType ? templateAPI.getRecommendations(cfg.professionType).catch(() => []) : Promise.resolve([]),
+          templateAPI.getAll().catch(() => []),
         ]);
         if (!active) return;
-        setLayouts(Array.isArray(layoutData) ? layoutData : []);
         setRecommended(Array.isArray(recommendationData) ? recommendationData : []);
         setCatalog(Array.isArray(catalogData) ? catalogData : []);
       } finally {
@@ -52,7 +32,7 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
     return () => {
       active = false;
     };
-  }, [cfg.professionType, mood]);
+  }, [cfg.professionType]);
 
   const userOrdinal = PLAN_ORDINAL[userPlan] ?? 0;
   const recommendedIds = useMemo(() => new Set(recommended.map((item) => item.id)), [recommended]);
@@ -61,9 +41,9 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
     const merged = [...recommended, ...catalog.filter((item) => !recommendedIds.has(item.id))];
     if (!search.trim()) return merged;
     const query = search.trim().toLowerCase();
-    return merged.filter((template) => [template.name, template.description, template.tagline, template.layout?.name]
+    return merged.filter((template) => [template.name, template.description, template.tagline, template.renderFamily, template.profession]
       .filter(Boolean)
-      .some((value) => value.toLowerCase().includes(query)));
+      .some((value) => String(value).toLowerCase().includes(query)));
   }, [catalog, recommended, recommendedIds, search]);
 
   const onSelect = (template) => {
@@ -73,13 +53,18 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
       return;
     }
     set("templateId", template.id);
+    set("templateKey", template.templateKey || template.renderFamily || template.name);
+    set("renderFamily", template.renderFamily || template.templateKey || "CLASSICPRO");
     set("templateName", template.name);
     set("templatePlanLevel", template.planLevel);
-    set("layoutId", template.layoutId || template.layout?.id || null);
+    set("layoutId", template.layoutId || null);
     set("layoutType", template.layout?.layoutType || null);
-    set("contentModes", template.supportedContentModes || []);
-    set("primaryMood", template.primaryMood || mood || "");
+    set("primaryMood", template.primaryMood || "");
     set("recommendedBlockTypes", template.recommendedBlockTypes || []);
+    set("enabledSections", template.enabledSections || template.supportedSections || []);
+    set("sectionOrder", template.sectionOrder || template.enabledSections || template.supportedSections || []);
+    set("navStyle", template.navStyle || "TOP_FIXED");
+    set("defaultTheme", template.defaultTheme || null);
   };
 
   return (
@@ -88,45 +73,30 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search templates, layouts, or vibes"
+          placeholder="Search templates or styles"
           style={s.search}
         />
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {MOOD_FILTERS.map(([value, label]) => (
-            <button
-              key={value || "all"}
-              type="button"
-              onClick={() => {
-                setMood(value);
-                set("primaryMood", value || "");
-              }}
-              style={{ ...s.filterChip, background: mood === value ? "#1C1C1C" : "#F0EDE6", color: mood === value ? "#F8F4EB" : "#5A5550" }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div style={s.infoBox}>
         <strong>{cfg.professionType?.replace(/_/g, " ") || "Profession"}</strong>
-        <span> drives the recommendation rail below. Users can still pick any unlocked template from the full catalog.</span>
+        <span> templates appear first below. Your selected template now defines the main visual identity, sections, and default theme.</span>
       </div>
 
       {loading ? (
         <div style={s.loadingWrap}>
           <Loader2 size={20} style={{ animation: "spin 1s linear infinite", color: "#1C1C1C" }} />
-          <div style={s.loadingText}>Loading recommendations...</div>
+          <div style={s.loadingText}>Loading templates...</div>
         </div>
       ) : visibleTemplates.length === 0 ? (
-        <div style={s.emptyState}>No templates found. Create a few in the admin panel and they will appear here safely.</div>
+        <div style={s.emptyState}>No templates found. Seed or create templates in admin and they will appear here.</div>
       ) : (
         <div style={s.grid}>
           {visibleTemplates.map((template) => {
             const selected = cfg.templateId === template.id;
             const locked = (PLAN_ORDINAL[template.planLevel] ?? 0) > userOrdinal;
-            const layout = template.layout || layouts.find((item) => item.id === template.layoutId);
             const isRecommended = recommendedIds.has(template.id);
+            const theme = template.defaultTheme || {};
             return (
               <button
                 key={template.id}
@@ -135,7 +105,11 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
                 style={{ ...s.card, border: selected ? "2px solid #1C1C1C" : "1px solid #E7E0D6", opacity: locked ? 0.68 : 1 }}
               >
                 <div style={s.previewShell}>
-                  <TemplateMiniPreview template={template} layout={layout} selected={selected} />
+                  <div style={{ ...s.previewPanel, background: theme.backgroundColor || theme.primaryColor || "#111827", color: theme.textColor || "#ffffff" }}>
+                    <div style={{ ...s.previewAccent, background: theme.accentColor || "#22c55e" }} />
+                    <div style={s.previewKey}>{template.templateKey || template.renderFamily || template.name}</div>
+                    <div style={{ fontSize: 11, opacity: 0.78 }}>{template.renderFamily || "Template family"}</div>
+                  </div>
                   {locked ? <div style={s.lockOverlay}><Lock size={15} /><span>{template.planLevel}</span></div> : null}
                   {isRecommended ? <div style={s.recommendedBadge}><Sparkles size={10} /> Recommended</div> : null}
                   {template.featured ? <div style={s.featuredBadge}><Star size={10} /> Featured</div> : null}
@@ -147,10 +121,8 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
                   </div>
                   <div style={s.cardText}>{template.tagline || template.description || "No description yet."}</div>
                   <div style={s.metaWrap}>
-                    <span>{layout?.layoutType?.replace(/_/g, " ") || "No layout"}</span>
-                    {(template.supportedContentModes || []).slice(0, 2).map((mode) => (
-                      <span key={mode}>{CONTENT_MODE_LABELS[mode] || mode.replace(/_/g, " ")}</span>
-                    ))}
+                    <span>{template.renderFamily || template.templateKey || "Template"}</span>
+                    {(template.enabledSections || []).slice(0, 2).map((section) => <span key={section}>{section.replace(/_/g, " ")}</span>)}
                   </div>
                 </div>
               </button>
@@ -160,33 +132,6 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
       )}
 
       {!cfg.templateId ? <div style={s.warn}>Select one template to continue.</div> : null}
-    </div>
-  );
-}
-
-function TemplateMiniPreview({ template, layout, selected }) {
-  const palette = template.theme?.colorPalette || {};
-  const primary = palette.primary || "#1F2937";
-  const accent = palette.accent || "#C08457";
-  const surface = palette.surfaceBackground || "#FCFBF8";
-  const paper = palette.pageBackground || "#F3EEE5";
-  const layoutType = layout?.layoutType || template.layout?.layoutType || "SINGLE_COLUMN";
-  const sidebar = layoutType === "LEFT_SIDEBAR" ? "left" : layoutType === "RIGHT_SIDEBAR" ? "right" : "none";
-  const grid = ["GRID", "BENTO_GRID", "MASONRY_GRID", "DASHBOARD", "GALLERY"].includes(layoutType);
-  const split = ["TWO_COLUMN", "SPLIT_SCREEN", "CASE_STUDY"].includes(layoutType);
-
-  return (
-    <div style={{ height: "100%", borderRadius: 14, overflow: "hidden", background: paper, border: `1px solid ${selected ? primary : "rgba(31,41,55,0.08)"}` }}>
-      <div style={{ height: 28, background: primary, opacity: 0.92 }} />
-      <div style={{ display: "flex", gap: 6, padding: 8, height: "calc(100% - 28px)", background: surface }}>
-        {sidebar === "left" ? <div style={{ width: "28%", borderRadius: 8, background: `${accent}66` }} /> : null}
-        <div style={{ flex: 1, display: "grid", gridTemplateColumns: grid ? "1fr 1fr" : "1fr", gap: 6 }}>
-          {[0, 1, 2, 3].slice(0, grid ? 4 : split ? 2 : 3).map((index) => (
-            <div key={index} style={{ minHeight: grid ? 26 : 18, borderRadius: 8, background: index % 2 === 0 ? `${primary}18` : `${accent}20` }} />
-          ))}
-        </div>
-        {sidebar === "right" ? <div style={{ width: "28%", borderRadius: 8, background: `${accent}66` }} /> : null}
-      </div>
     </div>
   );
 }
@@ -202,15 +147,6 @@ const s = {
     fontFamily: "'DM Sans', sans-serif",
     outline: "none",
     boxSizing: "border-box",
-  },
-  filterChip: {
-    border: "none",
-    borderRadius: 999,
-    padding: "5px 11px",
-    fontSize: 10.5,
-    fontWeight: 700,
-    cursor: "pointer",
-    fontFamily: "'DM Sans', sans-serif",
   },
   infoBox: {
     padding: "10px 12px",
@@ -263,6 +199,24 @@ const s = {
     height: 148,
     padding: 10,
     background: "linear-gradient(180deg, #F8F3EA 0%, #F2ECE2 100%)",
+  },
+  previewPanel: {
+    height: "100%",
+    borderRadius: 14,
+    padding: 14,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+  },
+  previewAccent: {
+    width: 42,
+    height: 6,
+    borderRadius: 999,
+  },
+  previewKey: {
+    fontSize: 22,
+    fontWeight: 800,
+    lineHeight: 1,
   },
   lockOverlay: {
     position: "absolute",

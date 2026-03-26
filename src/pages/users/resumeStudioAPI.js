@@ -1,3 +1,5 @@
+import { API_BASE_URL } from "../../config/apiBase";
+
 const h = () => ({
   "Content-Type": "application/json",
   Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -15,9 +17,8 @@ const ok = async (response) => {
   return response.json();
 };
 
-const BASE = "http://127.0.0.1:8082";
 const rawFetch = window.fetch.bind(window);
-const apiFetch = (url, options = {}) => rawFetch(url.startsWith("/api") ? `${BASE}${url}` : url, options);
+const apiFetch = (url, options = {}) => rawFetch(url.startsWith("/api") ? `${API_BASE_URL}${url}` : url, options);
 
 const toQuery = (params = {}) => {
   const query = new URLSearchParams();
@@ -68,4 +69,3 @@ export const subscriptionAPI = {
 export const sectionAPI = {
   getAll: (resumeId) => apiFetch(`/api/sections/resume/${resumeId}`, { headers: h() }).then(ok),
 };
-

@@ -36,7 +36,7 @@ const DEF_EXP = {
     roleDescription: "", keyAchievements: "", skillsUsed: "",
 };
 
-export function ExperienceSection({ resumeId, onNotify }) {
+export function ExperienceSection({ resumeId, onNotify, onPreviewDraftChange }) {
     const [items, setItems] = useState([]);
     const [editing, setEditing] = useState(null); // null=list, "new"=new form, id=edit form
     const [form, setForm] = useState({ ...DEF_EXP });
@@ -333,7 +333,7 @@ const SKILL_CATEGORIES_TO_ENUM = {
     "Other": "DOMAIN", // Grouping other under domain
 };
 
-export function SkillsSection({ resumeId, onNotify }) {
+export function SkillsSection({ resumeId, onNotify, onPreviewDraftChange }) {
     const [items, setItems] = useState([]);
     const [editing, setEditing] = useState(null);
     const [form, setForm] = useState({});

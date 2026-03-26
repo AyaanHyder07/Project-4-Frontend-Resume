@@ -109,7 +109,7 @@ function normalizeAxios(res) {
   return res?.data ?? res;
 }
 
-function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
+function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft }) {
   const [state, setState] = useState({
     loading: true,
     profile: null,
@@ -199,14 +199,24 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
     };
   }, [resumeId, resume?.layoutId, resume?.themeId, userId, refreshKey]);
 
+  const mergedProfile = useMemo(() => ({
+    ...(state.profile || {}),
+    ...((previewDraft && previewDraft.profile) || {}),
+  }), [state.profile, previewDraft]);
+
+  const mergedSections = useMemo(() => ({
+    ...(state.sections || {}),
+    ...((previewDraft && previewDraft.sections) || {}),
+  }), [state.sections, previewDraft]);
+
   const previewPortfolio = useMemo(() => ({
     ...resume,
     layout: state.layout,
     theme: state.theme,
-    sections: state.sections,
+    sections: mergedSections,
     customBlocks: state.customBlocks,
     sectionTitles: state.sectionTitles,
-  }), [resume, state.layout, state.theme, state.sections, state.customBlocks, state.sectionTitles]);
+  }), [resume, state.layout, state.theme, mergedSections, state.customBlocks, state.sectionTitles]);
 
   const stamp = state.lastUpdated
     ? state.lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -243,7 +253,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
                 <Eye size={14}/> Live Public Preview
               </div>
               <div style={{ marginTop: 2, fontSize: 11, color: "#958772", fontFamily: "'DM Sans', sans-serif" }}>
-                Real layout, real theme, real saved content
+                Live layout, live theme, and your in-progress content
               </div>
             </div>
           </div>
@@ -253,7 +263,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
             fontFamily: "'DM Sans', sans-serif",
           }}>
             <RefreshCw size={12}/>
-            {state.loading ? "Syncing..." : stamp ? `Updated ${stamp}` : "Ready"}
+            {state.loading ? "Syncing..." : previewDraft?.dirty ? "Editing live" : stamp ? `Updated ${stamp}` : "Ready"}
           </div>
         </div>
 
@@ -268,7 +278,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey }) {
           ) : (
             <PublicPortfolioRenderer
               portfolio={previewPortfolio}
-              profile={state.profile}
+              profile={mergedProfile}
               minHeight="100%"
               shellStyle={{ maxWidth: "100%", padding: "24px" }}
               sectionTitles={state.sectionTitles}
@@ -314,6 +324,7 @@ export default function ResumeEditorPage() {
   const [publishing, setPublishing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+  const [previewDraft, setPreviewDraft] = useState({ dirty: false, profile: null, sections: {} });
 
   const notify = (msg, ok = true) => {
     setToast({ msg, ok });
@@ -671,6 +682,34 @@ export default function ResumeEditorPage() {
                   setResume(nextResume);
                   setPreviewRefreshKey((prev) => prev + 1);
                 }}
+                onPreviewDraftChange={(section, payload) => {
+                  setPreviewDraft((prev) => {
+                    const nextSections = { ...(prev.sections || {}) };
+
+                    if (section === "profile") {
+                      return {
+                        ...prev,
+                        dirty: true,
+                        profile: payload ? {
+                          ...(prev.profile || {}),
+                          ...(payload || {}),
+                        } : null,
+                      };
+                    }
+
+                    if (!payload || (Array.isArray(payload) && payload.length === 0)) {
+                      delete nextSections[section];
+                    } else {
+                      nextSections[section] = payload;
+                    }
+
+                    return {
+                      ...prev,
+                      dirty: true,
+                      sections: nextSections,
+                    };
+                  });
+                }}
                 onNotify={notify}
               />
             </div>
@@ -690,6 +729,7 @@ export default function ResumeEditorPage() {
             resumeId={resumeId}
             userId={userId}
             refreshKey={previewRefreshKey}
+            previewDraft={previewDraft}
           />
         </div>
       </div>

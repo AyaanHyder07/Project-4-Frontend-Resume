@@ -3,34 +3,32 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, X } from "lucide-react";
 import StepBasicInfo from "./StepBasicInfo";
 import StepChooseTemplate from "./StepChooseTemplate";
-import StepChooseTheme from "./StepChooseTheme";
-import StepChooseMotion from "./StepChooseMotion";
 import StepReview from "./StepReview";
 import LiveResumePreview from "./LiveResumePreview";
-import { resumeAPI, subscriptionAPI, themeAPI } from "./resumeStudioAPI";
+import { resumeAPI, subscriptionAPI } from "./resumeStudioAPI";
 
 const STEPS = [
   { id: 1, label: "Basics", short: "Profession & title" },
-  { id: 2, label: "Template", short: "Recommendations" },
-  { id: 3, label: "Theme", short: "Shared visual skin" },
-  { id: 4, label: "Motion", short: "Interaction feel" },
-  { id: 5, label: "Review", short: "Create portfolio" },
+  { id: 2, label: "Template", short: "Choose your visual identity" },
+  { id: 3, label: "Review", short: "Create portfolio" },
 ];
 
 const DEFAULT_CFG = {
   title: "",
   professionType: "",
   templateId: "",
+  templateKey: "",
+  renderFamily: "",
   templateName: "",
   templatePlanLevel: "FREE",
-  themeOverrideId: null,
-  themeName: "",
-  motionPreset: "SUBTLE",
   primaryMood: "",
   layoutId: null,
   layoutType: null,
-  contentModes: [],
   recommendedBlockTypes: [],
+  enabledSections: [],
+  sectionOrder: [],
+  navStyle: "TOP_FIXED",
+  defaultTheme: null,
 };
 
 const STUDIO_CSS = `
@@ -50,7 +48,6 @@ export default function ResumeStudio({ onClose }) {
   const [userPlan, setUserPlan] = useState("FREE");
   const [resumeLimit, setResumeLimit] = useState(1);
   const [resumeCount, setResumeCount] = useState(0);
-  const [resolvedTheme, setResolvedTheme] = useState(null);
 
   const set = useCallback((key, value) => setCfg((previous) => ({ ...previous, [key]: value })), []);
 
@@ -61,14 +58,6 @@ export default function ResumeStudio({ onClose }) {
     }).catch(() => {});
     resumeAPI.getAll().then((list) => setResumeCount(Array.isArray(list) ? list.length : 0)).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (!cfg.themeOverrideId) {
-      setResolvedTheme(null);
-      return;
-    }
-    themeAPI.getById(cfg.themeOverrideId).then((theme) => setResolvedTheme(theme)).catch(() => setResolvedTheme(null));
-  }, [cfg.themeOverrideId]);
 
   const markDone = (value) => setDoneSteps((previous) => new Set([...previous, value]));
   const stepValid = (value) => {
@@ -94,9 +83,7 @@ export default function ResumeStudio({ onClose }) {
         title: cfg.title.trim(),
         professionType: cfg.professionType,
         templateId: cfg.templateId,
-        motionPreset: cfg.motionPreset,
       };
-      if (cfg.themeOverrideId) body.themeOverrideId = cfg.themeOverrideId;
       const resume = await resumeAPI.create(body);
       setSaveMsg("Portfolio created. Opening editor...");
       setTimeout(() => {
@@ -114,8 +101,6 @@ export default function ResumeStudio({ onClose }) {
   const currentStep = useMemo(() => {
     if (step === 1) return <StepBasicInfo cfg={cfg} set={set} />;
     if (step === 2) return <StepChooseTemplate cfg={cfg} set={set} userPlan={userPlan} />;
-    if (step === 3) return <StepChooseTheme cfg={cfg} set={set} userPlan={userPlan} />;
-    if (step === 4) return <StepChooseMotion cfg={cfg} set={set} />;
     return <StepReview cfg={cfg} saving={saving} saveMsg={saveMsg} error={error} onSubmit={handleCreate} userPlan={userPlan} resumeCount={resumeCount} resumeLimit={resumeLimit} />;
   }, [cfg, error, resumeCount, resumeLimit, saveMsg, saving, set, step, userPlan]);
 
@@ -190,11 +175,11 @@ export default function ResumeStudio({ onClose }) {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8A8578" }}>Live Preview</div>
-                <div style={{ fontSize: 10.5, color: "#948976" }}>Layout, tone, and motion direction update as you choose.</div>
+                <div style={{ fontSize: 10.5, color: "#948976" }}>Template mood, structure, and defaults update as you choose.</div>
               </div>
               {saving ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite", color: "#1C1C1C" }} /> : null}
             </div>
-            <LiveResumePreview cfg={cfg} theme={resolvedTheme} onZoneClick={setStep} />
+            <LiveResumePreview cfg={cfg} theme={cfg.defaultTheme} onZoneClick={setStep} />
           </div>
         </section>
       </div>

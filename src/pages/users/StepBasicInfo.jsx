@@ -8,7 +8,7 @@ const PROFESSION_GROUPS = [
       ["BACKEND_DEVELOPER", "Backend Developer"],
       ["FULL_STACK_DEVELOPER", "Full Stack Developer"],
       ["DATA_SCIENTIST", "Data Scientist"],
-      ["MACHINE_LEARNING_ENGINEER", "ML Engineer"],
+      ["DEVOPS_ENGINEER", "DevOps Engineer"],
     ],
   },
   {
@@ -18,7 +18,7 @@ const PROFESSION_GROUPS = [
       ["UX_DESIGNER", "UX Designer"],
       ["UI_DESIGNER", "UI Designer"],
       ["GRAPHIC_DESIGNER", "Graphic Designer"],
-      ["PRODUCT_DESIGNER", "Product Designer"],
+      ["BRAND_DESIGNER", "Brand Designer"],
       ["ILLUSTRATOR", "Illustrator"],
       ["MOTION_DESIGNER", "Motion Designer"],
     ],
@@ -30,7 +30,34 @@ const PROFESSION_GROUPS = [
       ["PHOTOGRAPHER", "Photographer"],
       ["VIDEOGRAPHER", "Videographer"],
       ["FILMMAKER", "Filmmaker"],
-      ["DOCUMENTARY_CREATOR", "Documentary Creator"],
+    ],
+  },
+  {
+    category: "WRITING_PUBLISHING",
+    label: "Writing & Publishing",
+    professions: [
+      ["WRITER", "Writer"],
+      ["JOURNALIST", "Journalist"],
+      ["CONTENT_STRATEGIST", "Content Strategist"],
+    ],
+  },
+  {
+    category: "FINANCE_BUSINESS",
+    label: "Business & Consulting",
+    professions: [
+      ["BUSINESS_CONSULTANT", "Consultant"],
+      ["PRODUCT_MANAGER", "Product Manager"],
+      ["ACCOUNTANT", "Accountant"],
+      ["FINANCIAL_ANALYST", "Financial Analyst"],
+    ],
+  },
+  {
+    category: "EDUCATION_RESEARCH",
+    label: "Research & Academic",
+    professions: [
+      ["RESEARCHER", "Researcher"],
+      ["PROFESSOR", "Professor"],
+      ["TEACHER", "Teacher"],
     ],
   },
   {
@@ -40,27 +67,6 @@ const PROFESSION_GROUPS = [
       ["DOCTOR", "Doctor"],
       ["NURSE", "Nurse"],
       ["THERAPIST", "Therapist"],
-      ["HEALTHCARE_CONSULTANT", "Healthcare Consultant"],
-    ],
-  },
-  {
-    category: "FINANCE_BUSINESS",
-    label: "Business & Finance",
-    professions: [
-      ["CONSULTANT", "Consultant"],
-      ["FINANCIAL_ANALYST", "Financial Analyst"],
-      ["ACCOUNTANT", "Accountant"],
-      ["PRODUCT_MANAGER", "Product Manager"],
-    ],
-  },
-  {
-    category: "WRITING_PUBLISHING",
-    label: "Writing & Publishing",
-    professions: [
-      ["WRITER", "Writer"],
-      ["CONTENT_STRATEGIST", "Content Strategist"],
-      ["JOURNALIST", "Journalist"],
-      ["RESEARCHER", "Researcher"],
     ],
   },
 ];
@@ -125,7 +131,7 @@ export default function StepBasicInfo({ cfg, set }) {
 
       <div style={{ marginBottom: 16 }}>
         <div style={s.label}>Profession <span style={{ color: "#B43C3C" }}>*</span></div>
-        <div style={s.hint}>Choose the closest profession so we can suggest stronger templates and layout behavior.</div>
+        <div style={s.hint}>Choose the closest profession so we can recommend the strongest templates for this portfolio.</div>
       </div>
 
       <div style={{ display: "grid", gap: 12 }}>
@@ -161,7 +167,7 @@ export default function StepBasicInfo({ cfg, set }) {
           <div style={s.summaryTitle}>Selected direction</div>
           <div style={s.summaryValue}>{selectedProfession.label}</div>
           <div style={s.summaryMeta}>Category: {selectedProfession.categoryLabel}</div>
-          <div style={s.summaryMeta}>Next we’ll recommend templates, themes, and motion presets around this choice.</div>
+          <div style={s.summaryMeta}>Next we’ll show the templates that fit this profession first, then the wider catalog below.</div>
         </div>
       ) : (
         <div style={s.warn}>Choose a profession to unlock recommendations in the next step.</div>

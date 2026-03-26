@@ -17,7 +17,7 @@
  * dateOfBirth in update: LocalDate.parse() → send as "YYYY-MM-DD" string
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { profileAPI } from "../editorAPI";
 import {
   Field, Input, Textarea, Select, Toggle,
@@ -38,7 +38,7 @@ const GENDER_OPTIONS = [
   { value: "PREFER_NOT_TO_SAY", label: "Prefer not to say" },
 ];
 
-export default function ProfileSection({ resumeId, onNotify }) {
+export default function ProfileSection({ resumeId, onNotify, onPreviewDraftChange }) {
   const [data, setData]     = useState(null);
   const [form, setForm]     = useState({});
   const [photo, setPhoto]   = useState(null);
@@ -48,6 +48,8 @@ export default function ProfileSection({ resumeId, onNotify }) {
   const [exists, setExists] = useState(false);
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+
+  const photoPreviewUrl = useMemo(() => (photo ? URL.createObjectURL(photo) : null), [photo]);
 
   useEffect(() => {
     profileAPI.get(resumeId)

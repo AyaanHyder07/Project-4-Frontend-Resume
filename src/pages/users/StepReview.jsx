@@ -17,8 +17,7 @@ export default function StepReview({
     ["Title", cfg.title || "Not set"],
     ["Profession", cfg.professionType?.replace(/_/g, " ") || "Not set"],
     ["Template", cfg.templateName || "Not selected"],
-    ["Theme", cfg.themeName || "Template Default"],
-    ["Motion", cfg.motionPreset || "SUBTLE"],
+    ["Template Key", cfg.templateKey || cfg.renderFamily || "Not selected"],
     ["Plan", userPlan],
     ["Portfolio Slots", resumeLimit === -1 ? `${resumeCount} / Unlimited` : `${resumeCount} / ${resumeLimit}`],
   ];
@@ -35,10 +34,9 @@ export default function StepReview({
       </div>
 
       <div style={s.nextBox}>
-        {[`
-A new draft portfolio will be created with your selected template, theme, and motion preset.`.trim(),
-          "Default fixed sections will be initialized for the editor.",
-          "You will still be able to add custom blocks later for anything beyond the built-in sections.",
+        {[`A new draft portfolio will be created with your selected template.`.trim(),
+          "Template defaults will decide the initial visual identity and section setup.",
+          cfg.enabledSections?.length ? `Sections initialized: ${cfg.enabledSections.join(", ")}` : "Default sections will be initialized for the editor.",
           "The portfolio stays private until you publish it."]
           .map((item) => (
             <div key={item} style={s.nextItem}>
