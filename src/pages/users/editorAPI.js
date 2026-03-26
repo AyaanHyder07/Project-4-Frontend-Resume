@@ -40,6 +40,7 @@ export const resumeAPI = {
   getAll: () => fetch(`/api/resumes`, { headers: h() }).then(ok),
   updateMeta: (id, body) => fetch(`/api/resumes/${id}/meta`, { method: "PATCH", headers: h(), body: JSON.stringify(body) }).then(ok),
   changeTheme: (id, themeId) => fetch(`/api/resumes/${id}/theme`, { method: "PATCH", headers: h(), body: JSON.stringify({ themeId }) }).then(ok),
+  changeTemplate: (id, templateId) => fetch(`/api/resumes/${id}/template`, { method: "PATCH", headers: h(), body: JSON.stringify({ templateId }) }).then(ok),
   submit: (id) => fetch(`/api/resumes/${id}/submit`, { method: "POST", headers: h() }).then(ok),
   publish: (id) => fetch(`/api/resumes/${id}/publish`, { method: "POST", headers: h() }).then(ok),
   unpublish: (id) => fetch(`/api/resumes/${id}/unpublish`, { method: "POST", headers: h() }).then(ok),
@@ -304,4 +305,6 @@ export const blockAPI = {
   reorder: (resumeId, ids) => fetch(`/api/blocks/resume/${resumeId}/reorder`, { method: 'PUT', headers: h(), body: JSON.stringify(ids) }).then(okVoid),
   delete: (id) => fetch(`/api/blocks/${id}`, { method: 'DELETE', headers: h() }).then(okVoid),
 };
+
+
 

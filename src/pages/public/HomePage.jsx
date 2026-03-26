@@ -1,4 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
+import TemplateCardPreview from "../../templates/TemplateCardPreview";
+import { IMPLEMENTED_TEMPLATE_KEYS, isImplementedTemplate } from "../../templates/implementedTemplates";
+import { getSamplePortfolio } from "../../templates/preview/samplePortfolios";
 import { useAuth } from "../../auth/AuthContext";
 import { useEffect, useState } from "react";
 import { templateAPI } from "../../api/api";
@@ -40,6 +43,20 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [catalogTemplates, setCatalogTemplates] = useState([]);
 
+  const templateGallery = IMPLEMENTED_TEMPLATE_KEYS.map((key) => {
+    const apiMatch = catalogTemplates.find((item) => String(item?.templateKey || item?.renderFamily || "").toUpperCase() === key);
+    const sample = getSamplePortfolio(key);
+    return {
+      id: apiMatch?.id || key,
+      name: apiMatch?.name || sample.templateKey,
+      tagline: apiMatch?.tagline || sample.title,
+      description: apiMatch?.description || sample.profile.professionalTitle,
+      templateKey: apiMatch?.templateKey || sample.templateKey,
+      renderFamily: apiMatch?.renderFamily || sample.renderFamily,
+      previewImageUrl: apiMatch?.previewImageUrl || "",
+    };
+  });
+
   useEffect(() => {
     if (user) {
       navigate("/dashboard");
@@ -47,7 +64,7 @@ export default function HomePage() {
     }
     templateAPI.getAvailable().then((res) => {
       const data = res?.data ?? [];
-      setCatalogTemplates(Array.isArray(data) ? data.slice(0, 6) : []);
+      setCatalogTemplates(Array.isArray(data) ? data.filter((item) => isImplementedTemplate(item.templateKey || item.renderFamily)) : []);
     }).catch(() => setCatalogTemplates([]));
   }, [user, navigate]);
 
@@ -106,33 +123,24 @@ export default function HomePage() {
             <h2 className="page-title">New users can preview the template direction before signing up</h2>
           </div>
           <div className="landing-feature-grid">
-            {(catalogTemplates.length ? catalogTemplates : [1,2,3,4]).map((item, index) => {
-              const template = typeof item === "object" ? item : null;
-              const theme = template?.theme || {};
-              const palette = theme?.colorPalette || {};
-              const primary = palette.primary || "#1f2937";
-              const accent = palette.accent || "#c08457";
-              const page = palette.pageBackground || "#f8f5ef";
-              const surface = palette.surfaceBackground || "#ffffff";
-              return (
-                <article className="landing-section-card" key={template?.id || index}>
-                  <div style={{ height: 180, borderRadius: 22, overflow: "hidden", border: "1px solid rgba(17,24,39,0.08)", background: page, boxShadow: "0 18px 40px rgba(15,23,42,0.08)" }}>
-                    {template?.previewImageUrl ? (
-                      <img src={template.previewImageUrl} alt={template.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    ) : (
-                      <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-                        <div style={{ background: primary, color: "#fff", padding: "16px 18px", fontWeight: 700 }}>{template?.name || `Template ${index + 1}`}</div>
-                        <div style={{ padding: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flex: 1 }}>
-                          {[0,1,2,3].map((card) => <div key={card} style={{ borderRadius: 16, background: surface, border: "1px solid rgba(17,24,39,0.08)", padding: 10 }}><div style={{ height: 6, width: `${58 + card * 8}%`, background: primary, borderRadius: 999, marginBottom: 7 }} /><div style={{ height: 4, width: "100%", background: `${accent}35`, borderRadius: 999, marginBottom: 5 }} /><div style={{ height: 4, width: `${76 + card * 4}%`, background: `${accent}25`, borderRadius: 999 }} /></div>)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <h3 style={{ margin: "18px 0 8px", fontSize: "1.45rem" }}>{template?.name || "Premium Template"}</h3>
-                  <p className="premium-muted">{template?.tagline || template?.description || "A polished template preview for visitors evaluating the product."}</p>
-                </article>
-              );
-            })}
+            {templateGallery.map((template) => {
+  const key = template.templateKey || template.renderFamily || "CLASSICPRO";
+  return (
+    <Link
+      to={`/template-preview/${key}`}
+      key={template.id || key}
+      className="landing-section-card"
+      style={{ textDecoration: "none", color: "inherit", display: "block" }}
+    >
+      <div style={{ height: 180, borderRadius: 22, overflow: "hidden", border: "1px solid rgba(17,24,39,0.08)", background: "#f8f5ef", boxShadow: "0 18px 40px rgba(15,23,42,0.08)" }}>
+        <TemplateCardPreview template={template} compact={false} />
+      </div>
+      <h3 style={{ margin: "18px 0 8px", fontSize: "1.45rem" }}>{template.name || key}</h3>
+      <p className="premium-muted">{template.tagline || template.description || "Preview the real template demo before signing up."}</p>
+      <div className="page-eyebrow" style={{ marginTop: 10 }}>Open live demo</div>
+    </Link>
+  );
+})}
           </div>
         </section>
 
@@ -154,3 +162,8 @@ export default function HomePage() {
     </div>
   );
 }
+
+
+
+
+

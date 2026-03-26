@@ -20,7 +20,7 @@ const css = `
 .devfolio-links button.active{color:var(--color-accent);opacity:1}
 .devfolio-hero{min-height:100vh;display:grid;grid-template-columns:1.1fr .9fr;gap:32px;align-items:center}
 .devfolio-kicker{opacity:.65;font-size:.85rem;text-transform:uppercase;letter-spacing:.16em}
-.devfolio-title{font-size:clamp(2.6rem,7vw,5.4rem);line-height:1.02;margin:.35rem 0 0;display:flex;align-items:center;gap:8px}
+.devfolio-title{font-size:clamp(2.6rem,7vw,5.4rem);line-height:1.02;margin:.35rem 0 0;display:flex;align-items:center;gap:8px;color:var(--color-text);text-shadow:0 0 24px rgba(0,0,0,.38)}
 .devfolio-cursor{display:inline-block;width:14px;height:1.2em;background:var(--color-accent);animation:blink 1s steps(1) infinite}
 .devfolio-type{margin-top:10px;font-size:1.05rem;color:var(--color-accent);min-height:28px}
 .devfolio-bio{max-width:620px;margin-top:16px;opacity:.86;line-height:1.7}
@@ -297,3 +297,4 @@ export default function DevFolioTemplate({ portfolio }) {
     </div>
   );
 }
+

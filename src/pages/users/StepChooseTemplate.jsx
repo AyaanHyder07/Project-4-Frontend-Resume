@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Lock, Sparkles, Star } from "lucide-react";
 import { templateAPI } from "./resumeStudioAPI";
+import TemplateCardPreview from "../../templates/TemplateCardPreview";
+import { isImplementedTemplate } from "../../templates/implementedTemplates";
 
 const PLAN_ORDINAL = { FREE: 0, BASIC: 1, PRO: 2, PREMIUM: 3 };
 
@@ -22,8 +24,8 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
           templateAPI.getAll().catch(() => []),
         ]);
         if (!active) return;
-        setRecommended(Array.isArray(recommendationData) ? recommendationData : []);
-        setCatalog(Array.isArray(catalogData) ? catalogData : []);
+        setRecommended(Array.isArray(recommendationData) ? recommendationData.filter((item) => isImplementedTemplate(item.templateKey || item.renderFamily)) : []);
+        setCatalog(Array.isArray(catalogData) ? catalogData.filter((item) => isImplementedTemplate(item.templateKey || item.renderFamily)) : []);
       } finally {
         if (active) setLoading(false);
       }
@@ -67,36 +69,41 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
     set("defaultTheme", template.defaultTheme || null);
   };
 
+  const openPreview = (event, template) => {
+    event.stopPropagation();
+    const key = template.templateKey || template.renderFamily || "CLASSICPRO";
+    window.open(`/template-preview/${key}`, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div style={{ animation: "studioFadeUp 0.32s both" }}>
       <div style={{ display: "grid", gap: 12, marginBottom: 14 }}>
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search templates or styles"
+          placeholder="Search premium templates or styles"
           style={s.search}
         />
       </div>
 
       <div style={s.infoBox}>
         <strong>{cfg.professionType?.replace(/_/g, " ") || "Profession"}</strong>
-        <span> templates appear first below. Your selected template now defines the main visual identity, sections, and default theme.</span>
+        <span> templates appear first below. Only real implemented premium templates are shown here, and each card now reflects the actual public template direction.</span>
       </div>
 
       {loading ? (
         <div style={s.loadingWrap}>
           <Loader2 size={20} style={{ animation: "spin 1s linear infinite", color: "#1C1C1C" }} />
-          <div style={s.loadingText}>Loading templates...</div>
+          <div style={s.loadingText}>Loading premium templates...</div>
         </div>
       ) : visibleTemplates.length === 0 ? (
-        <div style={s.emptyState}>No templates found. Seed or create templates in admin and they will appear here.</div>
+        <div style={s.emptyState}>No real implemented templates are available for this profession yet.</div>
       ) : (
         <div style={s.grid}>
           {visibleTemplates.map((template) => {
             const selected = cfg.templateId === template.id;
             const locked = (PLAN_ORDINAL[template.planLevel] ?? 0) > userOrdinal;
             const isRecommended = recommendedIds.has(template.id);
-            const theme = template.defaultTheme || {};
             return (
               <button
                 key={template.id}
@@ -105,24 +112,26 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
                 style={{ ...s.card, border: selected ? "2px solid #1C1C1C" : "1px solid #E7E0D6", opacity: locked ? 0.68 : 1 }}
               >
                 <div style={s.previewShell}>
-                  <div style={{ ...s.previewPanel, background: theme.backgroundColor || theme.primaryColor || "#111827", color: theme.textColor || "#ffffff" }}>
-                    <div style={{ ...s.previewAccent, background: theme.accentColor || "#22c55e" }} />
-                    <div style={s.previewKey}>{template.templateKey || template.renderFamily || template.name}</div>
-                    <div style={{ fontSize: 11, opacity: 0.78 }}>{template.renderFamily || "Template family"}</div>
-                  </div>
+                  <TemplateCardPreview template={template} />
                   {locked ? <div style={s.lockOverlay}><Lock size={15} /><span>{template.planLevel}</span></div> : null}
                   {isRecommended ? <div style={s.recommendedBadge}><Sparkles size={10} /> Recommended</div> : null}
                   {template.featured ? <div style={s.featuredBadge}><Star size={10} /> Featured</div> : null}
                 </div>
                 <div style={s.cardBody}>
                   <div style={s.cardTitleRow}>
-                    <div style={s.cardTitle}>{template.name}</div>
+                    <div>
+                      <div style={s.cardTitle}>{template.name}</div>
+                      <div style={s.familyLabel}>{template.renderFamily || template.templateKey}</div>
+                    </div>
                     <div style={s.planBadge}>{template.planLevel}</div>
                   </div>
-                  <div style={s.cardText}>{template.tagline || template.description || "No description yet."}</div>
+                  <div style={s.cardText}>{template.tagline || template.description || "Premium portfolio template."}</div>
                   <div style={s.metaWrap}>
-                    <span>{template.renderFamily || template.templateKey || "Template"}</span>
-                    {(template.enabledSections || []).slice(0, 2).map((section) => <span key={section}>{section.replace(/_/g, " ")}</span>)}
+                    {(template.enabledSections || []).slice(0, 3).map((section) => <span key={section}>{section.replace(/_/g, " ")}</span>)}
+                  </div>
+                  <div style={s.cardActions}>
+                    <button type="button" style={s.previewButton} onClick={(event) => openPreview(event, template)}>Preview</button>
+                    <span style={s.selectionHint}>{selected ? "Selected" : "Select template"}</span>
                   </div>
                 </div>
               </button>
@@ -131,7 +140,7 @@ export default function StepChooseTemplate({ cfg, set, userPlan }) {
         </div>
       )}
 
-      {!cfg.templateId ? <div style={s.warn}>Select one template to continue.</div> : null}
+      {!cfg.templateId ? <div style={s.warn}>Select one premium template to continue.</div> : null}
     </div>
   );
 }
@@ -183,11 +192,11 @@ const s = {
   grid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
-    gap: 12,
+    gap: 14,
   },
   card: {
     textAlign: "left",
-    borderRadius: 18,
+    borderRadius: 20,
     overflow: "hidden",
     background: "#fff",
     boxShadow: "0 10px 24px rgba(28,28,28,0.06)",
@@ -200,28 +209,10 @@ const s = {
     padding: 10,
     background: "linear-gradient(180deg, #F8F3EA 0%, #F2ECE2 100%)",
   },
-  previewPanel: {
-    height: "100%",
-    borderRadius: 14,
-    padding: 14,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-  },
-  previewAccent: {
-    width: 42,
-    height: 6,
-    borderRadius: 999,
-  },
-  previewKey: {
-    fontSize: 22,
-    fontWeight: 800,
-    lineHeight: 1,
-  },
   lockOverlay: {
     position: "absolute",
     inset: 10,
-    borderRadius: 14,
+    borderRadius: 16,
     background: "rgba(17,17,17,0.62)",
     color: "#fff",
     display: "grid",
@@ -279,6 +270,15 @@ const s = {
     color: "#1C1C1C",
     fontFamily: "'DM Sans', sans-serif",
   },
+  familyLabel: {
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: "0.12em",
+    textTransform: "uppercase",
+    color: "#817665",
+    fontFamily: "'DM Sans', sans-serif",
+  },
   planBadge: {
     flexShrink: 0,
     borderRadius: 999,
@@ -306,6 +306,32 @@ const s = {
     fontWeight: 700,
     textTransform: "uppercase",
     letterSpacing: "0.06em",
+    fontFamily: "'DM Sans', sans-serif",
+  },
+  cardActions: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 14,
+  },
+  previewButton: {
+    border: "1px solid #D7CCBC",
+    background: "#FCFAF6",
+    color: "#1C1C1C",
+    borderRadius: 999,
+    padding: "8px 12px",
+    fontSize: 11,
+    fontWeight: 700,
+    cursor: "pointer",
+    fontFamily: "'DM Sans', sans-serif",
+  },
+  selectionHint: {
+    fontSize: 10.5,
+    color: "#7F7568",
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
     fontFamily: "'DM Sans', sans-serif",
   },
   warn: {

@@ -2,25 +2,27 @@ import React, { Suspense, lazy } from "react";
 
 const DevFolioTemplate = lazy(() => import("./DevFolioTemplate"));
 const ClassicProTemplate = lazy(() => import("./ClassicProTemplate"));
+const DesignCaseTemplate = lazy(() => import("./DesignCaseTemplate"));
+const LensWorkTemplate = lazy(() => import("./LensWorkTemplate"));
+const MentorHubTemplate = lazy(() => import("./MentorHubTemplate"));
+const FreelancerKitTemplate = lazy(() => import("./FreelancerKitTemplate"));
+const StartupFounderTemplate = lazy(() => import("./StartupFounderTemplate"));
+const WritersDeskTemplate = lazy(() => import("./WritersDeskTemplate"));
 const FallbackTemplate = lazy(() => import("./FallbackTemplate"));
 
 const templateMap = {
   DEVFOLIO: DevFolioTemplate,
   CLASSICPRO: ClassicProTemplate,
-  DESIGNCASE: FallbackTemplate,
-  LENSWORK: FallbackTemplate,
-  MENTORHUB: FallbackTemplate,
-  STARTUPFOUNDER: FallbackTemplate,
-  FREELANCERKIT: FallbackTemplate,
-  ARTCANVAS: FallbackTemplate,
-  WRITERSDESK: FallbackTemplate,
-  MLRESEARCH: FallbackTemplate,
-  CAREPULSE: FallbackTemplate,
-  LEGALLEDGER: FallbackTemplate,
+  DESIGNCASE: DesignCaseTemplate,
+  LENSWORK: LensWorkTemplate,
+  MENTORHUB: MentorHubTemplate,
+  FREELANCERKIT: FreelancerKitTemplate,
+  STARTUPFOUNDER: StartupFounderTemplate,
+  WRITERSDESK: WritersDeskTemplate,
 };
 
 export default function TemplateRenderer({ portfolio }) {
-  const key = portfolio?.renderFamily || portfolio?.templateKey || "CLASSICPRO";
+  const key = String(portfolio?.renderFamily || portfolio?.templateKey || "CLASSICPRO").toUpperCase();
   const TemplateComponent = templateMap[key] || FallbackTemplate;
 
   return (

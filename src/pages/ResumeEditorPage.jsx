@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import UserDashboardLayout from "../components/user/UserDashboardLayout";
 import { layoutAPI, themeAPI as catalogThemeAPI } from "../api/api";
-import PublicPortfolioRenderer from "./public/PublicPortfolioRenderer";
+import TemplateRenderer from "../templates/TemplateRenderer";
 import {
   resumeAPI, sectionAPI, subscriptionAPI, profileAPI,
   experienceAPI, educationAPI, skillAPI, projectAPI,
@@ -41,6 +41,7 @@ import ThemeCustomizerPanel, {
   SectionManager
 } from "./users/sections/ToolPanels";
 import CustomBlocksPanel from "./users/sections/CustomBlocksPanel";
+import TemplateSwitcherPanel from "./users/sections/TemplateSwitcherPanel";
 
 const SECTIONS = [
   { id: "profile", icon: <User size={14}/>, label: "Profile", component: ProfileSection, required: true },
@@ -59,6 +60,7 @@ const SECTIONS = [
 ];
 
 const TOOLS = [
+  { id: "template", icon: <Sparkles size={14}/>, label: "Change Template", component: TemplateSwitcherPanel, plan: "PRO" },
   { id: "theme", icon: <Palette size={14}/>, label: "Theme", component: ThemeCustomizerPanel, plan: "PRO" },
   { id: "versions", icon: <History size={14}/>, label: "Versions", component: VersioningPanel, plan: "PRO" },
   { id: "sections", icon: <Settings size={14}/>, label: "Sections", component: SectionManager, plan: null },
@@ -107,6 +109,62 @@ const enumMapReverse = {
 
 function normalizeAxios(res) {
   return res?.data ?? res;
+}
+
+const PREVIEW_SECTION_KEY_MAP = {
+  EXPERIENCE: "experience",
+  EDUCATION: "education",
+  SKILLS: "skills",
+  PROJECTS: "projects",
+  CERTIFICATIONS: "certifications",
+  PUBLICATIONS: "publications",
+  TESTIMONIALS: "testimonials",
+  SERVICE_OFFERINGS: "services",
+  BLOG_POSTS: "blogPosts",
+  EXHIBITIONS_AWARDS: "exhibitions",
+  MEDIA_APPEARANCES: "mediaAppearances",
+  FINANCIAL_CREDENTIALS: "financialCredentials",
+  CONTACT: "contact",
+};
+
+function normalizePreviewSections(rawSections = {}, profile = {}, resumeId = null) {
+  const next = {};
+  Object.entries(rawSections || {}).forEach(([key, value]) => {
+    const mappedKey = PREVIEW_SECTION_KEY_MAP[String(key || "").toUpperCase()] || key;
+    next[mappedKey] = value;
+  });
+  if (!next.contact) {
+    next.contact = {
+      email: profile?.email || "",
+      phone: profile?.phone || "",
+      whatsapp: profile?.whatsapp || "",
+      showContactForm: true,
+      resumeId,
+    };
+  }
+  return next;
+}
+
+function resolvePreviewTheme(theme, resume) {
+  if (resume?.resolvedTheme) {
+    return {
+      primaryColor: resume.resolvedTheme.primaryColor,
+      accentColor: resume.resolvedTheme.accentColor,
+      backgroundColor: resume.resolvedTheme.backgroundColor,
+      textColor: resume.resolvedTheme.textColor,
+      fontFamily: resume.resolvedTheme.fontFamily,
+      motionLevel: resume.resolvedTheme.motionLevel,
+      borderRadius: resume.resolvedTheme.borderRadius,
+    };
+  }
+  return {
+    primaryColor: theme?.primaryColor || theme?.colorPalette?.primary || "#111111",
+    accentColor: theme?.accentColor || theme?.colorPalette?.accent || "#22c55e",
+    backgroundColor: theme?.backgroundColor || theme?.colorPalette?.pageBackground || "#ffffff",
+    textColor: theme?.textColor || theme?.colorPalette?.textPrimary || "#111111",
+    fontFamily: theme?.fontFamily || theme?.typography?.bodyFont || theme?.typography?.headingFont || "Inter",
+    motionLevel: theme?.motionLevel || resume?.resolvedTheme?.motionLevel || "subtle",
+  };
 }
 
 function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft }) {
@@ -209,14 +267,21 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft 
     ...((previewDraft && previewDraft.sections) || {}),
   }), [state.sections, previewDraft]);
 
-  const previewPortfolio = useMemo(() => ({
-    ...resume,
-    layout: state.layout,
-    theme: state.theme,
-    sections: mergedSections,
-    customBlocks: state.customBlocks,
-    sectionTitles: state.sectionTitles,
-  }), [resume, state.layout, state.theme, mergedSections, state.customBlocks, state.sectionTitles]);
+  const previewPortfolio = useMemo(() => {
+  const normalizedSections = normalizePreviewSections(mergedSections, mergedProfile, resumeId);
+  return {
+    resumeId,
+    slug: resume?.slug,
+    title: resume?.title,
+    templateKey: resume?.templateKey || resume?.renderFamily || "CLASSICPRO",
+    renderFamily: resume?.templateKey || resume?.renderFamily || "CLASSICPRO",
+    themeData: resolvePreviewTheme(state.theme, resume),
+    profile: mergedProfile,
+    sections: normalizedSections,
+    sectionOrder: Object.keys(normalizedSections),
+    openToWork: String(mergedProfile?.availabilityStatus || "").includes("OPEN") || Boolean(mergedProfile?.isOpenToWork),
+  };
+}, [resumeId, resume, state.theme, mergedProfile, mergedSections]);
 
   const stamp = state.lastUpdated
     ? state.lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -276,13 +341,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft 
               {state.error}
             </div>
           ) : (
-            <PublicPortfolioRenderer
-              portfolio={previewPortfolio}
-              profile={mergedProfile}
-              minHeight="100%"
-              shellStyle={{ maxWidth: "100%", padding: "24px" }}
-              sectionTitles={state.sectionTitles}
-            />
+            <TemplateRenderer portfolio={previewPortfolio} />
           )}
         </div>
       </div>
@@ -783,6 +842,20 @@ const btnStyle = (bg, color) => ({
   cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
   transition: "opacity 0.15s", whiteSpace: "nowrap",
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

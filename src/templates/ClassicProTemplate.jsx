@@ -14,7 +14,7 @@ const css = `
 .classicpro-sidebar{position:sticky;top:92px;padding:20px;border:1px solid rgba(15,23,42,.08);border-radius:18px;background:#fff}
 .classicpro-photo{width:84px;height:84px;border-radius:50%;object-fit:cover;border:4px solid rgba(15,23,42,.06)}
 .classicpro-initials{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;background:rgba(15,23,42,.06);font-size:1.8rem;font-weight:700}
-.classicpro-name{font-size:1.45rem;font-weight:800;margin-top:14px}
+.classicpro-name{font-size:1.45rem;font-weight:800;margin-top:14px;color:#0f172a}
 .classicpro-title{color:var(--color-accent);font-weight:700;margin-top:4px}
 .classicpro-badge{display:inline-flex;padding:7px 10px;border-radius:999px;background:rgba(14,165,233,.08);color:var(--color-accent);font-size:.85rem;margin-top:12px}
 .classicpro-divider{height:1px;background:rgba(15,23,42,.08);margin:18px 0}
@@ -120,3 +120,4 @@ export default function ClassicProTemplate({ portfolio }) {
     </div>
   );
 }
+
