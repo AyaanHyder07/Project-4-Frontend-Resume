@@ -22,11 +22,15 @@ const FIELD_DEFS = [
   { key: "resumeLimit",             label: "Resume Limit",          type: "number" },
   { key: "publicLinkLimit",         label: "Public Link Limit",     type: "number" },
   { key: "displayOrder",            label: "Display Order",         type: "number" },
+  { key: "trialDurationDays",        label: "Trial Days",            type: "number" },
 ];
 
 const BOOL_FIELDS = [
   { key: "versioningEnabled",         label: "Versioning" },
   { key: "themeCustomizationEnabled", label: "Theme Customization" },
+  { key: "templateChangeEnabled",    label: "Template Change" },
+  { key: "oneTimeOnly",              label: "One-Time Only" },
+  { key: "customSlugEnabled",        label: "Custom Slug" },
   { key: "isPopular",                 label: "Mark as Popular" },
   { key: "isActive",                  label: "Active" },
 ];
@@ -72,8 +76,12 @@ export default function AdminPlansPage() {
       resumeLimit: plan.resumeLimit,
       publicLinkLimit: plan.publicLinkLimit,
       displayOrder: plan.displayOrder,
+      trialDurationDays: plan.trialDurationDays,
       versioningEnabled: plan.versioningEnabled,
       themeCustomizationEnabled: plan.themeCustomizationEnabled,
+      templateChangeEnabled: plan.templateChangeEnabled,
+      oneTimeOnly: plan.oneTimeOnly,
+      customSlugEnabled: plan.customSlugEnabled,
       isPopular: plan.popular,
       isActive: plan.active,
     });
@@ -214,6 +222,10 @@ export default function AdminPlansPage() {
                     <Row label="Public links" val={plan.publicLinkLimit} />
                     <Row label="Versioning" val={plan.versioningEnabled ? "✓" : "✗"} />
                     <Row label="Theme custom." val={plan.themeCustomizationEnabled ? "✓" : "✗"} />
+                    <Row label="Template change" val={plan.templateChangeEnabled ? "✓" : "✗"} />
+                    <Row label="One-time only" val={plan.oneTimeOnly ? "✓" : "✗"} />
+                    <Row label="Custom slug" val={plan.customSlugEnabled ? "✓" : "✗"} />
+                    <Row label="Trial days" val={plan.trialDurationDays ?? "—"} />
                     <Row label="Display order" val={plan.displayOrder} />
                     <Row label="Updated" val={plan.updatedAt ? new Date(plan.updatedAt).toLocaleDateString() : "—"} />
                   </div>
@@ -444,3 +456,6 @@ const s = {
     marginTop: 4,
   },
 };
+
+
+

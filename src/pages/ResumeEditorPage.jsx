@@ -42,6 +42,7 @@ import ThemeCustomizerPanel, {
 } from "./users/sections/ToolPanels";
 import CustomBlocksPanel from "./users/sections/CustomBlocksPanel";
 import TemplateSwitcherPanel from "./users/sections/TemplateSwitcherPanel";
+import SlugSettingsPanel from "./users/sections/SlugSettingsPanel";
 
 const SECTIONS = [
   { id: "profile", icon: <User size={14}/>, label: "Profile", component: ProfileSection, required: true },
@@ -61,7 +62,8 @@ const SECTIONS = [
 
 const TOOLS = [
   { id: "template", icon: <Sparkles size={14}/>, label: "Change Template", component: TemplateSwitcherPanel, plan: "PRO" },
-  { id: "theme", icon: <Palette size={14}/>, label: "Theme", component: ThemeCustomizerPanel, plan: "PRO" },
+  { id: "slug", icon: <Globe size={14}/>, label: "Public URL", component: SlugSettingsPanel, plan: "PRO" },
+  { id: "theme", icon: <Palette size={14}/>, label: "Theme", component: ThemeCustomizerPanel, plan: "PREMIUM" },
   { id: "versions", icon: <History size={14}/>, label: "Versions", component: VersioningPanel, plan: "PRO" },
   { id: "sections", icon: <Settings size={14}/>, label: "Sections", component: SectionManager, plan: null },
   { id: "blocks", icon: <Sparkles size={14}/>, label: "Custom Blocks", component: CustomBlocksPanel, plan: null },
@@ -842,6 +844,10 @@ const btnStyle = (bg, color) => ({
   cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
   transition: "opacity 0.15s", whiteSpace: "nowrap",
 });
+
+
+
+
 
 
 

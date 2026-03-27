@@ -122,6 +122,7 @@ export const adminAPI = {
   approve: (resumeId) => axiosInstance.put(`/api/admin/resumes/${resumeId}/approve`),
   reject: (resumeId) => axiosInstance.put(`/api/admin/resumes/${resumeId}/reject`),
   forceUnpublish: (resumeId) => axiosInstance.put(`/api/admin/resumes/${resumeId}/unpublish`),
+  updateSlug: (resumeId, slug) => axiosInstance.patch(`/api/admin/resumes/${resumeId}/slug`, { slug }),
   delete: (resumeId) => axiosInstance.delete(`/api/admin/resumes/${resumeId}`),
 };
 
@@ -153,3 +154,11 @@ export const adminPlansAPI = {
   getAll: () => axiosInstance.get('/api/admin/plans'),
   update: (planType, data) => axiosInstance.put(`/api/admin/plans/${planType}`, data),
 };
+
+export const adminBillingAPI = {
+  getUsers: () => axiosInstance.get('/api/admin/billing/users'),
+  getUserDetails: (userId) => axiosInstance.get(`/api/admin/billing/users/${userId}`),
+  assignSubscription: (userId, data) => axiosInstance.post(`/api/admin/billing/users/${userId}/subscription`, data),
+  getRevenue: () => axiosInstance.get('/api/admin/billing/revenue'),
+};
+
