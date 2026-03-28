@@ -8,6 +8,10 @@ const MentorHubTemplate = lazy(() => import("./MentorHubTemplate"));
 const FreelancerKitTemplate = lazy(() => import("./FreelancerKitTemplate"));
 const StartupFounderTemplate = lazy(() => import("./StartupFounderTemplate"));
 const WritersDeskTemplate = lazy(() => import("./WritersDeskTemplate"));
+const StudioGridTemplate = lazy(() => import("./StudioGridTemplate"));
+const PixelMuseTemplate = lazy(() => import("./PixelMuseTemplate"));
+const CreatorFrameTemplate = lazy(() => import("./CreatorFrameTemplate"));
+const QuietCanvasTemplate = lazy(() => import("./QuietCanvasTemplate"));
 const FallbackTemplate = lazy(() => import("./FallbackTemplate"));
 
 const templateMap = {
@@ -19,6 +23,10 @@ const templateMap = {
   FREELANCERKIT: FreelancerKitTemplate,
   STARTUPFOUNDER: StartupFounderTemplate,
   WRITERSDESK: WritersDeskTemplate,
+  STUDIOGRID: StudioGridTemplate,
+  PIXELMUSE: PixelMuseTemplate,
+  CREATORFRAME: CreatorFrameTemplate,
+  QUIETCANVAS: QuietCanvasTemplate,
 };
 
 export default function TemplateRenderer({ portfolio }) {

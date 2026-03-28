@@ -1,13 +1,13 @@
 /**
- * ThemeCustomizerPanel.jsx  →  users/sections/ThemeCustomizerPanel.jsx
- * PRO/PREMIUM ONLY — backend enforces via subscriptionService.validateThemeCustomization()
+ * ThemeCustomizerPanel.jsx  â†’  users/sections/ThemeCustomizerPanel.jsx
+ * PRO/PREMIUM ONLY â€” backend enforces via subscriptionService.validateThemeCustomization()
  *
  * PUT /api/users/{userId}/resumes/{resumeId}/theme/customize
  * GET /api/users/{userId}/resumes/{resumeId}/theme/customization
  * GET /api/users/{userId}/resumes/{resumeId}/theme/resolved?baseThemeId=
  * DELETE /api/users/{userId}/resumes/{resumeId}/theme/customization
  *
- * SaveCustomizationRequest fields (all optional — null = use base theme default):
+ * SaveCustomizationRequest fields (all optional â€” null = use base theme default):
  *   baseThemeId, primaryColor, secondaryColor, accentColor,
  *   textPrimaryColor, textSecondaryColor, pageBackgroundColor,
  *   customGradient, headingFont, bodyFont, baseFontSize,
@@ -39,7 +39,7 @@ export default function ThemeCustomizerPanel({ resumeId, userId, userPlan, resum
   const [error, setError] = useState(null);
 
   const PLAN_ORD = { FREE:0, BASIC:1, PRO:2, PREMIUM:3 };
-  const canUse = (PLAN_ORD[userPlan] ?? 0) >= 2; // PRO+
+  const canUse = (PLAN_ORD[userPlan] ?? 0) >= 3; // PREMIUM only
 
   const set = (k, v) => setCustom((p) => ({ ...p, [k]: v }));
 
@@ -58,9 +58,9 @@ export default function ThemeCustomizerPanel({ resumeId, userId, userPlan, resum
         baseThemeId: resume?.themeId,
         ...custom,
       });
-      onNotify("Theme customization saved ✓");
+      onNotify("Theme customization saved âœ“");
     } catch (e) {
-      setError(e?.message || "Save failed — check your plan");
+      setError(e?.message || "Save failed â€” check your plan");
     } finally {
       setSaving(false);
     }
@@ -79,16 +79,16 @@ export default function ThemeCustomizerPanel({ resumeId, userId, userPlan, resum
 
   if (!canUse) return (
     <div style={{ padding:"32px 24px", textAlign:"center", border:"2px dashed #E5E3DE", borderRadius:14, background:"#FAFAF8" }}>
-      <div style={{ fontSize:36, marginBottom:12 }}>🎨</div>
+      <div style={{ fontSize:36, marginBottom:12 }}>ðŸŽ¨</div>
       <div style={{ fontSize:15, fontWeight:700, color:"#1C1C1C", fontFamily:"'DM Serif Display',serif", marginBottom:6 }}>
         Theme Customization
       </div>
       <div style={{ fontSize:12, color:"#8A8578", fontFamily:"'DM Sans',sans-serif", marginBottom:16, lineHeight:1.6 }}>
         Override colors, fonts, and effects on your base theme.<br/>
-        Available on <strong>PRO</strong> and <strong>PREMIUM</strong> plans.
+        Available on <strong>PREMIUM</strong> plans.
       </div>
       <a href="/upgrade" style={{ background:"#7B3FA0", color:"#fff", borderRadius:9, padding:"9px 20px", fontSize:12, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textDecoration:"none" }}>
-        Upgrade to PRO →
+        Upgrade to PREMIUM â†’
       </a>
     </div>
   );
@@ -98,7 +98,7 @@ export default function ThemeCustomizerPanel({ resumeId, userId, userPlan, resum
   return (
     <div style={{ fontFamily:"'DM Sans',sans-serif" }}>
       <div style={{ padding:"8px 12px", borderRadius:8, background:"#FFF7ED", border:"1px solid #FED7AA", fontSize:11, color:"#92400E", marginBottom:16 }}>
-        💡 Only fields you change are saved — null fields use the base theme default. Changes apply to your portfolio's appearance.
+        ðŸ’¡ Only fields you change are saved â€” null fields use the base theme default. Changes apply to your portfolio's appearance.
       </div>
 
       <ErrorBox msg={error}/>
@@ -162,7 +162,7 @@ export default function ThemeCustomizerPanel({ resumeId, userId, userPlan, resum
 
 
 /**
- * VersioningPanel.jsx  →  users/sections/VersioningPanel.jsx
+ * VersioningPanel.jsx  â†’  users/sections/VersioningPanel.jsx
  * PRO/PREMIUM ONLY
  *
  * POST /api/resumes/{resumeId}/versions    body: { changeNote }
@@ -200,7 +200,7 @@ export function VersioningPanel({ resumeId, userPlan, onNotify }) {
     try {
       const { versionAPI } = await import("../editorAPI");
       await versionAPI.create(resumeId, note || "Manual snapshot");
-      setNote(""); onNotify("Version snapshot saved ✓"); load();
+      setNote(""); onNotify("Version snapshot saved âœ“"); load();
     } catch(e) { setError(e?.message||"Save failed"); }
     finally { setSaving(false); }
   };
@@ -211,23 +211,23 @@ export function VersioningPanel({ resumeId, userPlan, onNotify }) {
     try {
       const { versionAPI } = await import("../editorAPI");
       await versionAPI.revert(resumeId);
-      onNotify("Reverted to previous version ✓"); load();
+      onNotify("Reverted to previous version âœ“"); load();
     } catch(e) { setError(e?.message||"Revert failed"); }
     finally { setReverting(false); }
   };
 
   if (!canUse) return (
     <div style={{ padding:"32px 24px", textAlign:"center", border:"2px dashed #E5E3DE", borderRadius:14, background:"#FAFAF8" }}>
-      <div style={{ fontSize:36, marginBottom:12 }}>🕐</div>
+      <div style={{ fontSize:36, marginBottom:12 }}>ðŸ•</div>
       <div style={{ fontSize:15, fontWeight:700, color:"#1C1C1C", fontFamily:"'DM Serif Display',serif", marginBottom:6 }}>
         Version History
       </div>
       <div style={{ fontSize:12, color:"#8A8578", fontFamily:"'DM Sans',sans-serif", marginBottom:16, lineHeight:1.6 }}>
         Save snapshots of your portfolio and revert when needed.<br/>
-        Available on <strong>PRO</strong> and <strong>PREMIUM</strong> plans.
+        Available on <strong>PREMIUM</strong> plans.
       </div>
       <a href="/upgrade" style={{ background:"#7B3FA0", color:"#fff", borderRadius:9, padding:"9px 20px", fontSize:12, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textDecoration:"none" }}>
-        Upgrade to PRO →
+        Upgrade to PREMIUM â†’
       </a>
     </div>
   );
@@ -237,15 +237,15 @@ export function VersioningPanel({ resumeId, userPlan, onNotify }) {
   return (
     <div style={{ fontFamily:"'DM Sans',sans-serif" }}>
       <div style={{ padding:"8px 12px", borderRadius:8, background:"#F0F9FF", border:"1px solid #BFDBFE", fontSize:11, color:"#1d4ed8", marginBottom:16 }}>
-        📝 Max 2 snapshots stored. Saving a new one drops the oldest.
+        ðŸ“ Max 2 snapshots stored. Saving a new one drops the oldest.
       </div>
       <ErrorBox msg={error}/>
 
       <Field label="Change Note" hint="Describe what you changed before saving">
-        <Input value={note} onChange={setNote} placeholder="Updated work experience section…"/>
+        <Input value={note} onChange={setNote} placeholder="Updated work experience sectionâ€¦"/>
       </Field>
       <button onClick={handleSave} disabled={saving} style={{ width:"100%", padding:"10px", background:"#1C1C1C", color:"#F0EDE6", border:"none", borderRadius:9, fontSize:12.5, fontWeight:700, cursor:saving?"not-allowed":"pointer", fontFamily:"'DM Sans',sans-serif", marginBottom:20, opacity:saving?0.7:1 }}>
-        {saving ? "Saving…" : "💾 Save Snapshot"}
+        {saving ? "Savingâ€¦" : "ðŸ’¾ Save Snapshot"}
       </button>
 
       {versions.length > 0 ? (
@@ -258,13 +258,13 @@ export function VersioningPanel({ resumeId, userPlan, onNotify }) {
                 <span style={{ fontSize:11, fontWeight:600, color:"#1C1C1C" }}>{v.changeNote||"Snapshot"}</span>
               </div>
               <div style={{ fontSize:10, color:"#8A8578" }}>
-                {v.createdAt ? new Date(v.createdAt).toLocaleString("en-IN") : "—"}
+                {v.createdAt ? new Date(v.createdAt).toLocaleString("en-IN") : "â€”"}
               </div>
             </div>
           ))}
           {versions.length >= 2 && (
             <button onClick={handleRevert} disabled={reverting} style={{ width:"100%", marginTop:8, padding:"9px", border:"1.5px solid #C9963A", borderRadius:9, background:"rgba(201,150,58,0.08)", color:"#C9963A", fontSize:12, fontWeight:700, cursor:reverting?"not-allowed":"pointer", fontFamily:"'DM Sans',sans-serif" }}>
-              {reverting ? "Reverting…" : "↩ Revert to Previous Version"}
+              {reverting ? "Revertingâ€¦" : "â†© Revert to Previous Version"}
             </button>
           )}
         </>
@@ -279,7 +279,7 @@ export function VersioningPanel({ resumeId, userPlan, onNotify }) {
 
 
 /**
- * SectionManager.jsx  →  users/SectionManager.jsx
+ * SectionManager.jsx  â†’  users/SectionManager.jsx
  * Manage which sections are enabled/disabled and their order.
  *
  * GET /api/sections/resume/{resumeId}
@@ -326,7 +326,7 @@ export function SectionManager({ resumeId, onNotify }) {
   return (
     <div style={{ fontFamily:"'DM Sans',sans-serif" }}>
       <div style={{ padding:"8px 12px", borderRadius:8, background:"#F0F9FF", border:"1px solid #BFDBFE", fontSize:11, color:"#1d4ed8", marginBottom:16 }}>
-        💡 Toggle sections on/off and set custom display titles. Disabled sections are hidden from your public portfolio.
+        ðŸ’¡ Toggle sections on/off and set custom display titles. Disabled sections are hidden from your public portfolio.
       </div>
 
       {sections.map((s) => (

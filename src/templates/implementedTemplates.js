@@ -7,6 +7,10 @@ export const IMPLEMENTED_TEMPLATE_KEYS = [
   "FREELANCERKIT",
   "STARTUPFOUNDER",
   "WRITERSDESK",
+  "STUDIOGRID",
+  "PIXELMUSE",
+  "CREATORFRAME",
+  "QUIETCANVAS",
 ];
 
 export function isImplementedTemplate(templateKey) {

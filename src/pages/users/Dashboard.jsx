@@ -11,7 +11,7 @@ import {
   Plus,
 } from "lucide-react";
 import UserDashboardLayout from "../../components/user/UserDashboardLayout";
-import { dashboardAPI } from "../../api/api";
+import { dashboardAPI, subscriptionAPI } from "../../api/api";
 
 const STATUS = {
   DRAFT: { label: "Draft", className: "status-tone-neutral", Icon: Clock3 },
@@ -20,10 +20,13 @@ const STATUS = {
   REJECTED: { label: "Rejected", className: "status-tone-danger", Icon: AlertCircle },
 };
 
+const PLAN_ORD = { FREE: 0, BASIC: 1, PRO: 2, PREMIUM: 3 };
+
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [userPlan, setUserPlan] = useState("FREE");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,11 +35,16 @@ export default function Dashboard() {
       .then((res) => setData(res.data))
       .catch(() => setError("Failed to load dashboard."))
       .finally(() => setLoading(false));
+
+    subscriptionAPI.getMyPlan()
+      .then((res) => setUserPlan(typeof res?.data === "string" ? res.data : "FREE"))
+      .catch(() => setUserPlan("FREE"));
   }, []);
 
   const d = data ?? {};
   const recent = d.recentResumes ?? [];
   const canCreate = (d.totalResumes ?? 0) < (d.resumeLimit ?? Infinity);
+  const userOrd = PLAN_ORD[userPlan] ?? 0;
 
   return (
     <UserDashboardLayout
@@ -160,15 +168,29 @@ export default function Dashboard() {
 
                         <div className="panel-actions">
                           {resume.published && resume.slug ? (
-                            <a
-                              className="premium-link-btn ghost"
-                              href={`/p/${resume.slug}`}
-                              rel="noreferrer"
-                              target="_blank"
-                            >
-                              <Globe size={14} />
-                              Public Page
-                            </a>
+                            <>
+                              <a
+                                className="premium-link-btn ghost"
+                                href={`/p/${resume.slug}`}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                <Globe size={14} />
+                                Public Page
+                              </a>
+                              {userOrd >= 3 ? (
+                                <a
+                                  className="premium-link-btn ghost"
+                                  href={`/p/${resume.slug}?customize=1`}
+                                  rel="noreferrer"
+                                  target="_blank"
+                                  style={{ background: "#1d4ed8", color: "#fff", borderColor: "rgba(29,78,216,0.3)" }}
+                                >
+                                  <Edit3 size={14} />
+                                  Customize Public Page
+                                </a>
+                              ) : null}
+                            </>
                           ) : null}
                           <button
                             className="premium-btn secondary"

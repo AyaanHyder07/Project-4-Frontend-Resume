@@ -178,6 +178,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft 
     sections: {},
     customBlocks: [],
     sectionTitles: {},
+    customization: null,
     error: null,
     lastUpdated: null,
   });
@@ -204,6 +205,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft 
             : resume?.themeId
               ? Promise.resolve(catalogThemeAPI.getById(resume.themeId)).then(normalizeAxios).catch(() => null)
               : Promise.resolve(null),
+          userId ? themeCustomAPI.get(userId, resumeId).catch(() => null) : Promise.resolve(null),
           ...SECTION_SOURCES.map((source) => source.load(resumeId).catch(() => [])),
         ]);
 
@@ -214,6 +216,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft 
         const blockItems = settled[2].status === "fulfilled" && Array.isArray(settled[2].value) ? settled[2].value : [];
         const layout = settled[3].status === "fulfilled" ? settled[3].value : null;
         const theme = settled[4].status === "fulfilled" ? settled[4].value : null;
+        const customization = settled[5].status === "fulfilled" ? settled[5].value : null;
         const configMap = new Map((Array.isArray(configs) ? configs : []).map((cfg) => [cfg.sectionName, cfg]));
         const sections = {};
         const sectionTitles = {};
@@ -221,7 +224,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft 
         SECTION_SOURCES.forEach((source, index) => {
           const config = configMap.get(source.config);
           if (config?.enabled === false) return;
-          const itemsResult = settled[index + 5];
+          const itemsResult = settled[index + 6];
           const items = itemsResult?.status === "fulfilled" && Array.isArray(itemsResult.value)
             ? itemsResult.value
             : [];
@@ -244,6 +247,7 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft 
           sections,
           customBlocks: blockItems.filter((item) => item?.enabled !== false),
           sectionTitles,
+          customization,
           error: null,
           lastUpdated: new Date(),
         });
@@ -269,6 +273,16 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft 
     ...((previewDraft && previewDraft.sections) || {}),
   }), [state.sections, previewDraft]);
 
+  const mergedTemplateOptions = useMemo(() => ({
+    ...((state.customization && state.customization.templateOptions) || {}),
+    ...((previewDraft && previewDraft.templateOptions) || {}),
+  }), [state.customization, previewDraft]);
+
+  const mergedTemplateLabels = useMemo(() => ({
+    ...((state.customization && state.customization.templateLabels) || {}),
+    ...((previewDraft && previewDraft.templateLabels) || {}),
+  }), [state.customization, previewDraft]);
+
   const previewPortfolio = useMemo(() => {
   const normalizedSections = normalizePreviewSections(mergedSections, mergedProfile, resumeId);
   return {
@@ -282,8 +296,10 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft 
     sections: normalizedSections,
     sectionOrder: Object.keys(normalizedSections),
     openToWork: String(mergedProfile?.availabilityStatus || "").includes("OPEN") || Boolean(mergedProfile?.isOpenToWork),
+    templateOptions: mergedTemplateOptions,
+    templateLabels: mergedTemplateLabels,
   };
-}, [resumeId, resume, state.theme, mergedProfile, mergedSections]);
+}, [resumeId, resume, state.theme, mergedProfile, mergedSections, mergedTemplateOptions, mergedTemplateLabels]);
 
   const stamp = state.lastUpdated
     ? state.lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -349,23 +365,42 @@ function LivePublicPreview({ resume, resumeId, userId, refreshKey, previewDraft 
       </div>
 
       {resume?.slug && (
-        <a
-          href={`/p/${resume.slug}`}
-          target="_blank"
-          rel="noreferrer"
-          style={{
-            marginTop: 12,
-            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-            width: "100%", padding: "11px 14px",
-            borderRadius: 14, background: "#fff",
-            border: "1px solid rgba(31,29,26,0.08)", color: "#4a6fa5",
-            textDecoration: "none", fontSize: 12, fontWeight: 700,
-            fontFamily: "'DM Sans', sans-serif", boxShadow: "0 12px 30px rgba(31,29,26,0.08)",
-          }}
-        >
-          Open Public Page
-          <ExternalLink size={13}/>
-        </a>
+        <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+          <a
+            href={`/p/${resume.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+              width: "100%", padding: "11px 14px",
+              borderRadius: 14, background: "#fff",
+              border: "1px solid rgba(31,29,26,0.08)", color: "#4a6fa5",
+              textDecoration: "none", fontSize: 12, fontWeight: 700,
+              fontFamily: "'DM Sans', sans-serif", boxShadow: "0 12px 30px rgba(31,29,26,0.08)",
+            }}
+          >
+            Open Public Page
+            <ExternalLink size={13}/>
+          </a>
+          {false ? (
+            <a
+              href={`/p/${resume.slug}?customize=1`}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                width: "100%", padding: "11px 14px",
+                borderRadius: 14, background: "#1d4ed8",
+                border: "1px solid rgba(29,78,216,0.12)", color: "#fff",
+                textDecoration: "none", fontSize: 12, fontWeight: 700,
+                fontFamily: "'DM Sans', sans-serif", boxShadow: "0 12px 30px rgba(29,78,216,0.28)",
+              }}
+            >
+              Customize Public Page
+              <ExternalLink size={13}/>
+            </a>
+          ) : null}
+        </div>
       )}
     </div>
   );
@@ -385,7 +420,7 @@ export default function ResumeEditorPage() {
   const [publishing, setPublishing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
-  const [previewDraft, setPreviewDraft] = useState({ dirty: false, profile: null, sections: {} });
+  const [previewDraft, setPreviewDraft] = useState({ dirty: false, profile: null, sections: {}, templateOptions: {}, templateLabels: {} });
 
   const notify = (msg, ok = true) => {
     setToast({ msg, ok });
@@ -401,7 +436,7 @@ export default function ResumeEditorPage() {
     ])
       .then(([r, plan, secs]) => {
         setResume(r);
-        setUserPlan(typeof plan === "string" ? plan : "FREE");
+        setUserPlan(typeof plan?.data === "string" ? plan.data : (typeof plan === "string" ? plan : "FREE"));
         const fetchedSecs = Array.isArray(secs?.data || secs) ? (secs.data || secs) : [];
         setDbSections(fetchedSecs);
         if (fetchedSecs.length > 0) {
@@ -414,6 +449,19 @@ export default function ResumeEditorPage() {
       .catch(() => navigate("/resumes"))
       .finally(() => setLoading(false));
   }, [resumeId, navigate]);
+  useEffect(() => {
+    const refreshPlan = () => {
+      subscriptionAPI.getMyPlan()
+        .then((plan) => setUserPlan(typeof plan?.data === "string" ? plan.data : (typeof plan === "string" ? plan : "FREE")))
+        .catch(() => {});
+    };
+    window.addEventListener("subscription:changed", refreshPlan);
+    window.addEventListener("focus", refreshPlan);
+    return () => {
+      window.removeEventListener("subscription:changed", refreshPlan);
+      window.removeEventListener("focus", refreshPlan);
+    };
+  }, []);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -758,6 +806,28 @@ export default function ResumeEditorPage() {
                       };
                     }
 
+                    if (section === "templateOptions") {
+                      return {
+                        ...prev,
+                        dirty: true,
+                        templateOptions: {
+                          ...(prev.templateOptions || {}),
+                          ...(payload || {}),
+                        },
+                      };
+                    }
+
+                    if (section === "templateLabels") {
+                      return {
+                        ...prev,
+                        dirty: true,
+                        templateLabels: {
+                          ...(prev.templateLabels || {}),
+                          ...(payload || {}),
+                        },
+                      };
+                    }
+
                     if (!payload || (Array.isArray(payload) && payload.length === 0)) {
                       delete nextSections[section];
                     } else {
@@ -844,6 +914,7 @@ const btnStyle = (bg, color) => ({
   cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
   transition: "opacity 0.15s", whiteSpace: "nowrap",
 });
+
 
 
 
